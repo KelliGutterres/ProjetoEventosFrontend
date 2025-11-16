@@ -62,166 +62,45 @@ export const authAPI = {
 
 export const eventosAPI = {
   listar: async () => {
-    // Mock da API - substitua pela sua API real quando criar
-    return {
-      success: true,
-      data: [
-        {
-          id: 1,
-          descricao: 'Workshop de React',
-          data_inicio: '2024-02-01T10:00:00',
-          data_final: '2024-02-01T18:00:00',
-          cancelado: 0,
-        },
-        {
-          id: 2,
-          descricao: 'Conferência de Tecnologia',
-          data_inicio: '2024-02-15T09:00:00',
-          data_final: '2024-02-15T17:00:00',
-          cancelado: 0,
-        },
-        {
-          id: 3,
-          descricao: 'Meetup de Desenvolvimento',
-          data_inicio: '2024-03-01T19:00:00',
-          data_final: '2024-03-01T21:00:00',
-          cancelado: 0,
-        },
-      ],
-    }
+    const response = await api.get('/api/eventos')
+    return response.data
   },
   buscarPorId: async (id) => {
-    // Mock da API - substitua pela sua API real quando criar
-    return {
-      success: true,
-      data: {
-        id: parseInt(id),
-        descricao: 'Evento Encontrado',
-        data_inicio: '2024-02-01T10:00:00',
-        data_final: '2024-02-01T18:00:00',
-        cancelado: 0,
-      },
-    }
+    const response = await api.get(`/api/eventos/${id}`)
+    return response.data
   },
   inscrever: async (eventoId, userId) => {
-    // Mock da API - substitua pela sua API real quando criar
-    // A API real deve receber eventoId e userId no body
-    console.log('Inscrição:', { eventoId, userId })
-    return {
-      success: true,
-      message: 'Inscrição realizada com sucesso!',
-    }
+    const response = await api.post('/api/inscricoes', {
+      evento_id: eventoId,
+      usuario_id: userId,
+    })
+    return response.data
   },
 }
 
 export const certificadoAPI = {
   validar: async (codigo) => {
-    // Mock da API - substitua pela sua API real quando criar
-    return {
-      success: true,
-      message: 'Certificado válido!',
-      data: {
-        codigo,
-        validado: true,
-      },
-    }
+    const response = await api.post('/api/certificados/validacao', {
+      codigo,
+    })
+    return response.data
   },
 }
 
 export const inscricoesAPI = {
   listar: async (userId) => {
-    // Mock da API - substitua pela sua API real quando criar
-    // A API real deve receber userId como parâmetro e retornar as inscrições do usuário
-    console.log('Listando inscrições para usuário:', userId)
-    
-    // Se for o usuário 9, retornar inscrições específicas para teste
-    if (userId === 9) {
-      return {
-        success: true,
-        data: [
-          {
-            id: 3,
-            evento_id: 1,
-            usuario_id: 9,
-            evento: {
-              id: 1,
-              descricao: 'Workshop de React',
-              data_inicio: '2024-02-01T10:00:00',
-              data_final: '2024-02-01T18:00:00',
-            },
-            presenca_confirmada: false,
-            created_at: '2024-01-25T10:30:00',
-          },
-          {
-            id: 4,
-            evento_id: 2,
-            usuario_id: 9,
-            evento: {
-              id: 2,
-              descricao: 'Conferência de Tecnologia',
-              data_inicio: '2024-02-15T09:00:00',
-              data_final: '2024-02-15T17:00:00',
-            },
-            presenca_confirmada: false,
-            created_at: '2024-01-26T14:20:00',
-          },
-        ],
-      }
-    }
-    
-    // Para outros usuários, retornar dados padrão
-    return {
-      success: true,
-      data: [
-        {
-          id: 1,
-          evento_id: 1,
-          usuario_id: userId,
-          evento: {
-            id: 1,
-            descricao: 'Workshop de React',
-            data_inicio: '2024-02-01T10:00:00',
-            data_final: '2024-02-01T18:00:00',
-          },
-          presenca_confirmada: false,
-          created_at: '2024-01-15T10:30:00',
-        },
-        {
-          id: 2,
-          evento_id: 2,
-          usuario_id: userId,
-          evento: {
-            id: 2,
-            descricao: 'Conferência de Tecnologia',
-            data_inicio: '2024-02-15T09:00:00',
-            data_final: '2024-02-15T17:00:00',
-          },
-          presenca_confirmada: true,
-          created_at: '2024-01-20T14:20:00',
-        },
-      ],
-    }
+    const response = await api.get(`/api/inscricoes/usuario/${userId}`)
+    return response.data
   },
   cancelar: async (inscricaoId, userId) => {
-    // Mock da API - substitua pela sua API real quando criar
-    // A API real deve receber inscricaoId e userId no body
-    console.log('Cancelando inscrição:', { inscricaoId, userId })
-    return {
-      success: true,
-      message: 'Inscrição cancelada com sucesso!',
-    }
+    const response = await api.delete(`/api/eventos/${inscricaoId}`)
+    return response.data
   },
   gerarCertificado: async (inscricaoId) => {
-    // Mock da API - substitua pela sua API real quando criar
-    // A API real deve receber inscricaoId e retornar o certificado ou código
-    console.log('Gerando certificado para inscrição:', inscricaoId)
-    return {
-      success: true,
-      message: 'Certificado gerado com sucesso!',
-      data: {
-        codigo: `CERT-${inscricaoId}-${Date.now()}`,
-      },
-    }
+    const response = await api.post('/api/certificados', {
+      inscricao_id: inscricaoId,
+    })
+    return response.data
   },
 }
 
