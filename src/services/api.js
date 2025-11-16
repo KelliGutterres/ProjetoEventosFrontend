@@ -21,15 +21,23 @@ const apiEmail = axios.create({
 // Interceptor para adicionar token se existir
 api.interceptors.request.use(
   (config) => {
-    const userData = localStorage.getItem('userData')
-    if (userData) {
-      try {
-        const user = JSON.parse(userData)
-        // Adicionar token se necessário no futuro
-        // config.headers.Authorization = `Bearer ${user.token}`
-      } catch (error) {
-        console.error('Erro ao parsear userData:', error)
-      }
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor para adicionar token nas requisições de email
+apiEmail.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },

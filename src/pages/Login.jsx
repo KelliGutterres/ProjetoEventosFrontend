@@ -26,6 +26,10 @@ function Login({ setIsAuthenticated }) {
       if (response.success && response.authorized) {
         // Salvar dados do usuário no localStorage
         localStorage.setItem('userData', JSON.stringify(response.data))
+        // Salvar token de autenticação
+        if (response.token) {
+          localStorage.setItem('token', response.token)
+        }
         setIsAuthenticated(true)
         navigate('/home')
       } else {

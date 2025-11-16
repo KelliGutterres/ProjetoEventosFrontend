@@ -71,6 +71,7 @@ function Home({ setIsAuthenticated }) {
 
   const handleLogout = () => {
     localStorage.removeItem('userData')
+    localStorage.removeItem('token')
     setIsAuthenticated(false)
     navigate('/login')
   }
