@@ -62,15 +62,15 @@ export const authAPI = {
 
 export const eventosAPI = {
   listar: async () => {
-    const response = await api.get('/api/eventos')
+    const response = await api.get('http://177.44.248.78:8000/api/eventos')
     return response.data
   },
   buscarPorId: async (id) => {
-    const response = await api.get(`/api/eventos/${id}`)
+    const response = await api.get(`http://177.44.248.78:8000/api/eventos/${id}`)
     return response.data
   },
   inscrever: async (eventoId, userId) => {
-    const response = await api.post('/api/inscricoes', {
+    const response = await api.post('http://177.44.248.78:8001/api/inscricoes', {
       evento_id: eventoId,
       usuario_id: userId,
     })
@@ -80,7 +80,7 @@ export const eventosAPI = {
 
 export const certificadoAPI = {
   validar: async (codigo) => {
-    const response = await api.post('/api/certificados/validacao', {
+    const response = await api.post('http://177.44.248.78:8001/api/certificados/validacao', {
       codigo,
     })
     return response.data
@@ -89,15 +89,15 @@ export const certificadoAPI = {
 
 export const inscricoesAPI = {
   listar: async (userId) => {
-    const response = await api.get(`/api/inscricoes/usuario/${userId}`)
+    const response = await api.get(`http://177.44.248.78:8001/api/inscricoes/usuario/${userId}`)
     return response.data
   },
   cancelar: async (inscricaoId, userId) => {
-    const response = await api.delete(`/api/eventos/${inscricaoId}`)
+    const response = await api.delete(`http://177.44.248.78:8000/api/eventos/${inscricaoId}`)
     return response.data
   },
   gerarCertificado: async (inscricaoId) => {
-    const response = await api.post('/api/certificados', {
+    const response = await api.post('http://177.44.248.78:8001/api/certificados', {
       inscricao_id: inscricaoId,
     })
     return response.data
