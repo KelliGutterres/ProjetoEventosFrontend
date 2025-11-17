@@ -96,65 +96,73 @@ function ValidarCertificado() {
           </form>
 
           {/* Resultado */}
-          {resultado && (
-            <div
-              className={`mt-6 p-6 rounded-lg border-l-4 ${
-                resultado.success
-                  ? 'bg-green-50 border-green-500'
-                  : 'bg-red-50 border-red-500'
-              }`}
-            >
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  {resultado.success ? (
-                    <svg
-                      className="h-6 w-6 text-green-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+          {resultado && (() => {
+            // Verificar se o certificado é válido baseado no success e na mensagem
+            const isValid = resultado.success && 
+              resultado.message && 
+              !resultado.message.toLowerCase().includes('inválido') &&
+              !resultado.message.toLowerCase().includes('invalido')
+            
+            return (
+              <div
+                className={`mt-6 p-6 rounded-lg border-l-4 ${
+                  isValid
+                    ? 'bg-green-50 border-green-500'
+                    : 'bg-red-50 border-red-500'
+                }`}
+              >
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    {isValid ? (
+                      <svg
+                        className="h-6 w-6 text-green-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="h-6 w-6 text-red-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3
+                      className={`text-sm font-semibold ${
+                        isValid ? 'text-green-800' : 'text-red-800'
+                      }`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="h-6 w-6 text-red-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                      {isValid ? 'Certificado Válido!' : 'Certificado Inválido'}
+                    </h3>
+                    <p
+                      className={`mt-1 text-sm ${
+                        isValid ? 'text-green-700' : 'text-red-700'
+                      }`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <h3
-                    className={`text-sm font-semibold ${
-                      resultado.success ? 'text-green-800' : 'text-red-800'
-                    }`}
-                  >
-                    {resultado.success ? 'Certificado Válido!' : 'Erro na Validação'}
-                  </h3>
-                  <p
-                    className={`mt-1 text-sm ${
-                      resultado.success ? 'text-green-700' : 'text-red-700'
-                    }`}
-                  >
-                    {resultado.message}
-                  </p>
+                      {resultado.message}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Back Button */}
           <div className="text-center pt-4 border-t border-gray-200">

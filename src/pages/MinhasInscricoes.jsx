@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { inscricoesAPI, presencasAPI, emailAPI } from '../services/api'
+import { inscricoesAPI, presencasAPI, emailAPI, eventosAPI } from '../services/api'
 
 function MinhasInscricoes() {
   const [inscricoes, setInscricoes] = useState([])
@@ -43,8 +43,36 @@ function MinhasInscricoes() {
 
       const response = await inscricoesAPI.listar(userId)
       if (response.success) {
-        setInscricoes(response.data)
-        setInscricoesFiltradas(response.data)
+        // Buscar os dados completos dos eventos para cada inscrição
+        const inscricoesComEventos = await Promise.all(
+          response.data.map(async (inscricao) => {
+            // Se já tiver o evento completo com descrição, retornar como está
+            if (inscricao.evento?.descricao) {
+              return inscricao
+            }
+            
+            // Se não tiver, buscar o evento pelo evento_id
+            const eventoId = inscricao.evento_id || inscricao.evento?.id
+            if (eventoId) {
+              try {
+                const eventoResponse = await eventosAPI.buscarPorId(eventoId)
+                if (eventoResponse.success && eventoResponse.data) {
+                  return {
+                    ...inscricao,
+                    evento: eventoResponse.data,
+                  }
+                }
+              } catch (error) {
+                console.error(`Erro ao buscar evento ${eventoId}:`, error)
+              }
+            }
+            
+            return inscricao
+          })
+        )
+        
+        setInscricoes(inscricoesComEventos)
+        setInscricoesFiltradas(inscricoesComEventos)
       }
     } catch (error) {
       console.error('Erro ao carregar inscrições:', error)

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { eventosAPI, emailAPI } from '../services/api'
+import { eventosAPI, emailAPI, inscricoesAPI } from '../services/api'
 
 function Home({ setIsAuthenticated }) {
   const [eventos, setEventos] = useState([])
   const [eventosFiltrados, setEventosFiltrados] = useState([])
+  const [eventosInscritos, setEventosInscritos] = useState(new Set())
   const [filtroId, setFiltroId] = useState('')
   const [loading, setLoading] = useState(true)
   const [inscrevendo, setInscrevendo] = useState(null)
@@ -13,6 +14,7 @@ function Home({ setIsAuthenticated }) {
 
   useEffect(() => {
     carregarEventos()
+    carregarInscricoes()
   }, [])
 
   useEffect(() => {
@@ -41,6 +43,26 @@ function Home({ setIsAuthenticated }) {
     }
   }
 
+  const carregarInscricoes = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+      const userId = userData.id
+      
+      if (userId) {
+        const response = await inscricoesAPI.listar(userId)
+        if (response.success && response.data) {
+          // Extrair os IDs dos eventos das inscrições
+          const idsEventos = response.data.map((inscricao) => 
+            inscricao.evento_id || inscricao.evento?.id
+          ).filter(Boolean)
+          setEventosInscritos(new Set(idsEventos))
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar inscrições:', error)
+    }
+  }
+
   const handleInscrever = async (eventoId) => {
     try {
       setInscrevendo(eventoId)
@@ -56,6 +78,9 @@ function Home({ setIsAuthenticated }) {
         return
       }
       
+      // Atualizar o estado local imediatamente (otimistic update) para desabilitar o botão
+      setEventosInscritos((prev) => new Set([...prev, eventoId]))
+
       const response = await eventosAPI.inscrever(eventoId, userId)
       if (response.success) {
         // Enviar email de inscrição
@@ -67,10 +92,26 @@ function Home({ setIsAuthenticated }) {
           console.error('Erro ao enviar email de inscrição:', emailError)
         }
         
+        // Recarregar as inscrições para garantir sincronização
+        carregarInscricoes()
+        
         setMessage(`Inscrição realizada com sucesso! ID: ${eventoId}`)
         setTimeout(() => setMessage(''), 5000)
+      } else {
+        // Reverter o estado se a operação falhou
+        setEventosInscritos((prev) => {
+          const novo = new Set(prev)
+          novo.delete(eventoId)
+          return novo
+        })
       }
     } catch (error) {
+      // Reverter o estado se houver erro
+      setEventosInscritos((prev) => {
+        const novo = new Set(prev)
+        novo.delete(eventoId)
+        return novo
+      })
       setMessage('Erro ao realizar inscrição. Tente novamente.')
       setTimeout(() => setMessage(''), 5000)
     } finally {
@@ -235,7 +276,9 @@ function Home({ setIsAuthenticated }) {
                     <button
                       onClick={() => handleInscrever(evento.id)}
                       disabled={
-                        inscrevendo === evento.id || evento.cancelado === 1
+                        inscrevendo === evento.id || 
+                        evento.cancelado === 1 ||
+                        eventosInscritos.has(evento.id)
                       }
                       className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
@@ -243,6 +286,8 @@ function Home({ setIsAuthenticated }) {
                         ? 'Inscrevendo...'
                         : evento.cancelado === 1
                         ? 'Evento Cancelado'
+                        : eventosInscritos.has(evento.id)
+                        ? 'Já Inscrito'
                         : 'Inscrever-se'}
                     </button>
                   </div>
