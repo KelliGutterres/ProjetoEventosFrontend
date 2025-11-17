@@ -34,8 +34,11 @@ function Admin({ setIsAuthenticated }) {
       setLoading(true)
       const response = await inscricoesAPI.listarTodas()
       if (response.success) {
-        setInscricoes(response.data || [])
-        setInscricoesFiltradas(response.data || [])
+        const inscricoesData = response.data || []
+        // Log para debug - remover depois se necessário
+        console.log('Inscrições carregadas:', inscricoesData)
+        setInscricoes(inscricoesData)
+        setInscricoesFiltradas(inscricoesData)
       }
     } catch (error) {
       console.error('Erro ao carregar inscrições:', error)
@@ -56,21 +59,37 @@ function Admin({ setIsAuthenticated }) {
           text: 'Presença registrada com sucesso!',
         })
         
-        // Atualizar o estado local
+        // Atualizar o estado local imediatamente
+        const presencaId = response.data?.id || response.data?.presenca_id
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true }
+              ? { 
+                  ...inscricao, 
+                  presenca_confirmada: true,
+                  presenca_id: presencaId,
+                  presenca: presencaId ? { id: presencaId } : undefined
+                }
               : inscricao
           )
         )
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true }
+              ? { 
+                  ...inscricao, 
+                  presenca_confirmada: true,
+                  presenca_id: presencaId,
+                  presenca: presencaId ? { id: presencaId } : undefined
+                }
               : inscricao
           )
         )
+        
+        // Recarregar as inscrições para garantir que os dados estão atualizados
+        setTimeout(() => {
+          carregarInscricoes()
+        }, 1000)
       } else {
         setMessage({
           type: 'error',
@@ -231,21 +250,35 @@ function Admin({ setIsAuthenticated }) {
                         {formatarData(inscricao.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {inscricao.presenca_confirmada || inscricao.presenca_id || inscricao.presenca ? (
-                          <span className="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded">
-                            Confirmada
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleRegistrarPresenca(inscricao.id)}
-                            disabled={processando === inscricao.id}
-                            className="px-3 py-1 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {processando === inscricao.id
-                              ? 'Registrando...'
-                              : 'Registrar Presença'}
-                          </button>
-                        )}
+                        {(() => {
+                          // Verificar se a presença já foi registrada
+                          const temPresenca = 
+                            inscricao.presenca_confirmada === true || 
+                            inscricao.presenca_confirmada === 1 ||
+                            inscricao.presenca_id || 
+                            inscricao.presenca?.id ||
+                            inscricao.presenca
+                          
+                          if (temPresenca) {
+                            return (
+                              <span className="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded">
+                                Confirmada
+                              </span>
+                            )
+                          } else {
+                            return (
+                              <button
+                                onClick={() => handleRegistrarPresenca(inscricao.id)}
+                                disabled={processando === inscricao.id}
+                                className="px-3 py-1 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {processando === inscricao.id
+                                  ? 'Registrando...'
+                                  : 'Registrar Presença'}
+                              </button>
+                            )
+                          }
+                        })()}
                       </td>
                     </tr>
                   ))}
