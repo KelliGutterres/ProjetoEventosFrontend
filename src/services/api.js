@@ -92,8 +92,12 @@ export const inscricoesAPI = {
     const response = await api.get(`http://177.44.248.78:8001/api/inscricoes/usuario/${userId}`)
     return response.data
   },
-  cancelar: async (inscricaoId, userId) => {
-    const response = await api.delete(`http://177.44.248.78:8001/api/inscricoes/${inscricaoId}`)
+  cancelar: async (inscricaoId) => {
+    const response = await api.delete(`http://177.44.248.78:8001/api/inscricoes/${inscricaoId}`, {
+      data: {
+        id: inscricaoId,
+      }
+    })
     return response.data
   },
   gerarCertificado: async (presenca_id) => {

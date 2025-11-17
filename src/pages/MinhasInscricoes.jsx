@@ -84,9 +84,28 @@ function MinhasInscricoes() {
         return
       }
 
+      // Atualizar o estado local imediatamente (otimistic update) para desabilitar o botão
+      setInscricoes((prevInscricoes) =>
+        prevInscricoes.map((inscricao) =>
+          inscricao.id === inscricaoId
+            ? { ...inscricao, presenca_confirmada: true }
+            : inscricao
+        )
+      )
+      setInscricoesFiltradas((prevInscricoes) =>
+        prevInscricoes.map((inscricao) =>
+          inscricao.id === inscricaoId
+            ? { ...inscricao, presenca_confirmada: true }
+            : inscricao
+        )
+      )
+
       // Registrar a presença
       const response = await presencasAPI.registrar(inscricaoId)
       if (response.success) {
+        // Obter o presenca_id da resposta (pode estar em data.id, data.presenca_id, ou id)
+        const presencaId = response.data?.id || response.data?.presenca_id || response.id
+        
         // Enviar email de presença
         try {
           await emailAPI.enviarPresenca(userId, eventoId)
@@ -101,11 +120,11 @@ function MinhasInscricoes() {
           text: 'Presença registrada com sucesso!',
         })
         
-        // Atualizar o estado local imediatamente para refletir a presença registrada
+        // Atualizar o estado local com o presenca_id retornado pela API
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true }
+              ? { ...inscricao, presenca_confirmada: true, presenca_id: presencaId }
               : inscricao
           )
         )
@@ -114,21 +133,33 @@ function MinhasInscricoes() {
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true }
+              ? { ...inscricao, presenca_confirmada: true, presenca_id: presencaId }
               : inscricao
           )
         )
-        
-        // Recarregar da API para garantir sincronização (útil quando a API real estiver ativa)
-        carregarInscricoes()
       } else {
+        // Reverter o estado se a operação falhou
+        setInscricoes((prevInscricoes) =>
+          prevInscricoes.map((inscricao) =>
+            inscricao.id === inscricaoId
+              ? { ...inscricao, presenca_confirmada: false }
+              : inscricao
+          )
+        )
+        setInscricoesFiltradas((prevInscricoes) =>
+          prevInscricoes.map((inscricao) =>
+            inscricao.id === inscricaoId
+              ? { ...inscricao, presenca_confirmada: false }
+              : inscricao
+          )
+        )
         setMessage({
           type: 'error',
           text: response.message || 'Erro ao registrar presença.',
         })
       }
     } catch (error) {
-      // Se a presença já foi registrada (erro 409), atualizar o estado local também
+      // Se a presença já foi registrada (erro 409), manter o estado atualizado
       if (error.response?.status === 409) {
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
@@ -141,6 +172,22 @@ function MinhasInscricoes() {
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
               ? { ...inscricao, presenca_confirmada: true }
+              : inscricao
+          )
+        )
+      } else {
+        // Reverter o estado se houver outro erro
+        setInscricoes((prevInscricoes) =>
+          prevInscricoes.map((inscricao) =>
+            inscricao.id === inscricaoId
+              ? { ...inscricao, presenca_confirmada: false }
+              : inscricao
+          )
+        )
+        setInscricoesFiltradas((prevInscricoes) =>
+          prevInscricoes.map((inscricao) =>
+            inscricao.id === inscricaoId
+              ? { ...inscricao, presenca_confirmada: false }
               : inscricao
           )
         )
@@ -178,7 +225,7 @@ function MinhasInscricoes() {
       const inscricao = inscricoes.find((i) => i.id === inscricaoId)
       const eventoId = inscricao?.evento_id || inscricao?.evento?.id
 
-      const response = await inscricoesAPI.cancelar(inscricaoId, userId)
+      const response = await inscricoesAPI.cancelar(inscricaoId)
       if (response.success) {
         // Enviar email de cancelamento
         if (eventoId) {
@@ -224,7 +271,28 @@ function MinhasInscricoes() {
       setProcessando(`certificado-${inscricaoId}`)
       setMessage({ type: '', text: '' })
 
-      const response = await inscricoesAPI.gerarCertificado(inscricaoId)
+      // Buscar a inscrição para obter o presenca_id
+      const inscricao = inscricoes.find((i) => i.id === inscricaoId)
+      if (!inscricao) {
+        setMessage({
+          type: 'error',
+          text: 'Inscrição não encontrada.',
+        })
+        return
+      }
+
+      // Obter o presenca_id da inscrição (pode estar em presenca_id, presenca?.id, ou id_presenca)
+      const presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
+      
+      if (!presencaId) {
+        setMessage({
+          type: 'error',
+          text: 'Presença não encontrada. Registre a presença primeiro.',
+        })
+        return
+      }
+
+      const response = await inscricoesAPI.gerarCertificado(presencaId)
       if (response.success) {
         setMessage({
           type: 'success',
