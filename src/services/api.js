@@ -122,24 +122,24 @@ export const emailAPI = {
   enviarPresenca: async (idUsuario, idEvento) => {
     // Chama a API de emails para enviar email de presença
     const response = await apiEmail.post('/api/email/presenca', {
-      id_usuario: idUsuario,
-      id_evento: idEvento,
+      id_usuario: parseInt(idUsuario),
+      id_evento: parseInt(idEvento),
     })
     return response.data
   },
   enviarInscricao: async (idUsuario, idEvento) => {
     // Chama a API de emails para enviar email de inscrição
     const response = await apiEmail.post('/api/email/inscricao', {
-      id_usuario: idUsuario,
-      id_evento: idEvento,
+      id_usuario: parseInt(idUsuario),
+      id_evento: parseInt(idEvento),
     })
     return response.data
   },
   enviarCancelamento: async (idUsuario, idEvento) => {
     // Chama a API de emails para enviar email de cancelamento
     const response = await apiEmail.post('/api/email/cancelar', {
-      id_usuario: idUsuario,
-      id_evento: idEvento,
+      id_usuario: parseInt(idUsuario),
+      id_evento: parseInt(idEvento),
     })
     return response.data
   },
