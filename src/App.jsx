@@ -5,10 +5,13 @@ import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import ValidarCertificado from './pages/ValidarCertificado'
 import MinhasInscricoes from './pages/MinhasInscricoes'
+import OfflineIndicator from './components/OfflineIndicator'
+import { useOffline } from './hooks/useOffline'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
+  const { online, pendingCount, sync } = useOffline()
 
   useEffect(() => {
     // Verificar se há token ou dados de usuário no localStorage
@@ -18,6 +21,17 @@ function App() {
     }
     setLoading(false)
   }, [])
+
+  // Sincronizar automaticamente quando voltar online
+  useEffect(() => {
+    if (online && pendingCount > 0) {
+      // Aguardar um pouco para garantir que a conexão está estável
+      const timer = setTimeout(() => {
+        sync()
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [online, pendingCount, sync])
 
   if (loading) {
     return (
@@ -64,6 +78,7 @@ function App() {
         />
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
+      <OfflineIndicator />
     </Router>
   )
 }

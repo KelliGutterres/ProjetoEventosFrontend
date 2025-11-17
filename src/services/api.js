@@ -1,4 +1,10 @@
 import axios from 'axios'
+import { 
+  isOnline, 
+  addUsuarioToQueue, 
+  addInscricaoToQueue, 
+  addPresencaToQueue 
+} from './offlineService'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const API_EMAIL_URL = import.meta.env.VITE_API_EMAIL_URL || 'http://localhost:3001'
@@ -48,8 +54,36 @@ apiEmail.interceptors.request.use(
 
 export const usuariosAPI = {
   criar: async (dados) => {
-    const response = await api.post('/api/usuarios', dados)
-    return response.data
+    // Se estiver offline, salvar na fila
+    if (!isOnline()) {
+      console.log('Modo offline: salvando cadastro de usuário na fila')
+      const usuarioOffline = addUsuarioToQueue(dados)
+      return {
+        success: true,
+        message: 'Usuário cadastrado offline. Será sincronizado quando voltar online.',
+        data: { id: usuarioOffline.id_local },
+        offline: true,
+      }
+    }
+
+    // Se estiver online, fazer requisição normal
+    try {
+      const response = await api.post('/api/usuarios', dados)
+      return response.data
+    } catch (error) {
+      // Se a requisição falhar e for erro de rede, tentar salvar offline
+      if (!error.response && !isOnline()) {
+        console.log('Erro de rede: salvando cadastro de usuário na fila')
+        const usuarioOffline = addUsuarioToQueue(dados)
+        return {
+          success: true,
+          message: 'Usuário cadastrado offline. Será sincronizado quando voltar online.',
+          data: { id: usuarioOffline.id_local },
+          offline: true,
+        }
+      }
+      throw error
+    }
   },
 }
 
@@ -70,11 +104,45 @@ export const eventosAPI = {
     return response.data
   },
   inscrever: async (eventoId, userId) => {
-    const response = await api.post('http://177.44.248.78:8001/api/inscricoes', {
-      evento_id: eventoId,
-      usuario_id: userId,
-    })
-    return response.data
+    // Se estiver offline, salvar na fila
+    if (!isOnline()) {
+      console.log('Modo offline: salvando inscrição na fila')
+      const inscricaoOffline = addInscricaoToQueue({
+        evento_id: eventoId,
+        usuario_id: userId,
+      })
+      return {
+        success: true,
+        message: 'Inscrição realizada offline. Será sincronizada quando voltar online.',
+        data: { id: inscricaoOffline.id_local },
+        offline: true,
+      }
+    }
+
+    // Se estiver online, fazer requisição normal
+    try {
+      const response = await api.post('http://177.44.248.78:8001/api/inscricoes', {
+        evento_id: eventoId,
+        usuario_id: userId,
+      })
+      return response.data
+    } catch (error) {
+      // Se a requisição falhar e for erro de rede, tentar salvar offline
+      if (!error.response && !isOnline()) {
+        console.log('Erro de rede: salvando inscrição na fila')
+        const inscricaoOffline = addInscricaoToQueue({
+          evento_id: eventoId,
+          usuario_id: userId,
+        })
+        return {
+          success: true,
+          message: 'Inscrição realizada offline. Será sincronizada quando voltar online.',
+          data: { id: inscricaoOffline.id_local },
+          offline: true,
+        }
+      }
+      throw error
+    }
   },
 }
 
@@ -110,11 +178,42 @@ export const inscricoesAPI = {
 
 export const presencasAPI = {
   registrar: async (inscricaoId) => {
-    // Chama a API real de presenças
-    const response = await api.post('/api/presencas', {
-      inscricao_id: inscricaoId,
-    })
-    return response.data
+    // Se estiver offline, salvar na fila
+    if (!isOnline()) {
+      console.log('Modo offline: salvando presença na fila')
+      const presencaOffline = addPresencaToQueue({
+        inscricao_id: inscricaoId,
+      })
+      return {
+        success: true,
+        message: 'Presença registrada offline. Será sincronizada quando voltar online.',
+        data: { id: presencaOffline.id_local },
+        offline: true,
+      }
+    }
+
+    // Se estiver online, fazer requisição normal
+    try {
+      const response = await api.post('/api/presencas', {
+        inscricao_id: inscricaoId,
+      })
+      return response.data
+    } catch (error) {
+      // Se a requisição falhar e for erro de rede, tentar salvar offline
+      if (!error.response && !isOnline()) {
+        console.log('Erro de rede: salvando presença na fila')
+        const presencaOffline = addPresencaToQueue({
+          inscricao_id: inscricaoId,
+        })
+        return {
+          success: true,
+          message: 'Presença registrada offline. Será sincronizada quando voltar online.',
+          data: { id: presencaOffline.id_local },
+          offline: true,
+        }
+      }
+      throw error
+    }
   },
 }
 
