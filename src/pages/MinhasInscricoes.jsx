@@ -63,9 +63,17 @@ function MinhasInscricoes() {
       // Buscar os dados completos dos eventos para cada inscrição
       const inscricoesComEventos = await Promise.all(
         todasInscricoes.map(async (inscricao) => {
+          // Verificar se já existe presença registrada (presenca_id, presenca?.id, id_presenca, ou objeto presenca)
+          const presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
+          const temPresenca = !!presencaId || !!inscricao.presenca || inscricao.presenca_confirmada === true
+          
           // Se já tiver o evento completo com descrição, retornar como está
           if (inscricao.evento?.descricao) {
-            return inscricao
+            return {
+              ...inscricao,
+              presenca_confirmada: temPresenca,
+              presenca_id: presencaId || inscricao.presenca_id,
+            }
           }
           
           // Se não tiver, buscar o evento pelo evento_id
@@ -77,6 +85,8 @@ function MinhasInscricoes() {
                 return {
                   ...inscricao,
                   evento: eventoResponse.data,
+                  presenca_confirmada: temPresenca,
+                  presenca_id: presencaId || inscricao.presenca_id,
                 }
               }
             } catch (error) {
@@ -84,7 +94,11 @@ function MinhasInscricoes() {
             }
           }
           
-          return inscricao
+          return {
+            ...inscricao,
+            presenca_confirmada: temPresenca,
+            presenca_id: presencaId || inscricao.presenca_id,
+          }
         })
       )
       
