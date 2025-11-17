@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { inscricoesAPI } from '../services/api'
+import { inscricoesAPI, presencasAPI } from '../services/api'
 
 function Admin({ setIsAuthenticated }) {
   const [inscricoes, setInscricoes] = useState([])
   const [inscricoesFiltradas, setInscricoesFiltradas] = useState([])
   const [filtroNome, setFiltroNome] = useState('')
   const [loading, setLoading] = useState(true)
+  const [processando, setProcessando] = useState(null)
+  const [message, setMessage] = useState({ type: '', text: '' })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -39,6 +41,52 @@ function Admin({ setIsAuthenticated }) {
       console.error('Erro ao carregar inscrições:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRegistrarPresenca = async (inscricaoId) => {
+    try {
+      setProcessando(inscricaoId)
+      setMessage({ type: '', text: '' })
+
+      const response = await presencasAPI.registrar(inscricaoId)
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: 'Presença registrada com sucesso!',
+        })
+        
+        // Atualizar o estado local
+        setInscricoes((prevInscricoes) =>
+          prevInscricoes.map((inscricao) =>
+            inscricao.id === inscricaoId
+              ? { ...inscricao, presenca_confirmada: true }
+              : inscricao
+          )
+        )
+        setInscricoesFiltradas((prevInscricoes) =>
+          prevInscricoes.map((inscricao) =>
+            inscricao.id === inscricaoId
+              ? { ...inscricao, presenca_confirmada: true }
+              : inscricao
+          )
+        )
+      } else {
+        setMessage({
+          type: 'error',
+          text: response.message || 'Erro ao registrar presença.',
+        })
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text:
+          error.response?.data?.message ||
+          'Erro ao registrar presença. Tente novamente.',
+      })
+    } finally {
+      setProcessando(null)
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000)
     }
   }
 
@@ -108,6 +156,25 @@ function Admin({ setIsAuthenticated }) {
           </div>
         </div>
 
+        {/* Message */}
+        {message.text && (
+          <div
+            className={`mb-6 border-l-4 p-4 rounded-lg ${
+              message.type === 'success'
+                ? 'bg-green-50 border-green-500'
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <p
+              className={`text-sm ${
+                message.type === 'success' ? 'text-green-700' : 'text-red-700'
+              }`}
+            >
+              {message.text}
+            </p>
+          </div>
+        )}
+
         {/* Loading */}
         {loading ? (
           <div className="text-center py-12">
@@ -169,9 +236,15 @@ function Admin({ setIsAuthenticated }) {
                             Confirmada
                           </span>
                         ) : (
-                          <span className="px-2 py-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded">
-                            Pendente
-                          </span>
+                          <button
+                            onClick={() => handleRegistrarPresenca(inscricao.id)}
+                            disabled={processando === inscricao.id}
+                            className="px-3 py-1 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {processando === inscricao.id
+                              ? 'Registrando...'
+                              : 'Registrar Presença'}
+                          </button>
                         )}
                       </td>
                     </tr>
