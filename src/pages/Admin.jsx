@@ -231,7 +231,7 @@ function Admin({ setIsAuthenticated }) {
                         {formatarData(inscricao.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {inscricao.presenca_confirmada ? (
+                        {inscricao.presenca_confirmada || inscricao.presenca_id || inscricao.presenca ? (
                           <span className="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded">
                             Confirmada
                           </span>
