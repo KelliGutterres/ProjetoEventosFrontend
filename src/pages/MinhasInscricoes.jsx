@@ -292,26 +292,93 @@ function MinhasInscricoes() {
         return
       }
 
+      // Atualizar o estado local imediatamente (otimistic update) para desabilitar o botão
+      setInscricoes((prevInscricoes) =>
+        prevInscricoes.map((insc) =>
+          insc.id === inscricaoId
+            ? { ...insc, certificado_gerado: true }
+            : insc
+        )
+      )
+      setInscricoesFiltradas((prevInscricoes) =>
+        prevInscricoes.map((insc) =>
+          insc.id === inscricaoId
+            ? { ...insc, certificado_gerado: true }
+            : insc
+        )
+      )
+
       const response = await inscricoesAPI.gerarCertificado(presencaId)
-      if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Certificado gerado com sucesso!',
-        })
-        // Se a resposta contiver um link ou código, pode ser exibido
-        if (response.data?.codigo) {
+      if (response.success && response.data) {
+        // Fazer download do arquivo do certificado
+        try {
+          const conteudo = response.data.conteudo || ''
+          const nomeArquivo = response.data.nome_arquivo || `certificado_${presencaId}.txt`
+          const tipo = response.data.tipo || 'text/plain'
+          
+          // Criar um Blob com o conteúdo
+          const blob = new Blob([conteudo], { type: tipo })
+          
+          // Criar um link temporário para download
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = nomeArquivo
+          document.body.appendChild(link)
+          link.click()
+          
+          // Limpar
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          
           setMessage({
             type: 'success',
-            text: `Certificado gerado! Código: ${response.data.codigo}`,
+            text: response.message || 'Certificado gerado e baixado com sucesso!',
+          })
+        } catch (downloadError) {
+          console.error('Erro ao fazer download do certificado:', downloadError)
+          setMessage({
+            type: 'success',
+            text: response.message || 'Certificado gerado com sucesso! (Erro ao fazer download)',
           })
         }
       } else {
+        // Reverter o estado se a operação falhou
+        setInscricoes((prevInscricoes) =>
+          prevInscricoes.map((insc) =>
+            insc.id === inscricaoId
+              ? { ...insc, certificado_gerado: false }
+              : insc
+          )
+        )
+        setInscricoesFiltradas((prevInscricoes) =>
+          prevInscricoes.map((insc) =>
+            insc.id === inscricaoId
+              ? { ...insc, certificado_gerado: false }
+              : insc
+          )
+        )
         setMessage({
           type: 'error',
           text: response.message || 'Erro ao gerar certificado.',
         })
       }
     } catch (error) {
+      // Reverter o estado se houver erro
+      setInscricoes((prevInscricoes) =>
+        prevInscricoes.map((insc) =>
+          insc.id === inscricaoId
+            ? { ...insc, certificado_gerado: false }
+            : insc
+        )
+      )
+      setInscricoesFiltradas((prevInscricoes) =>
+        prevInscricoes.map((insc) =>
+          insc.id === inscricaoId
+            ? { ...insc, certificado_gerado: false }
+            : insc
+        )
+      )
       setMessage({
         type: 'error',
         text:
@@ -526,12 +593,15 @@ function MinhasInscricoes() {
                       onClick={() => handleGerarCertificado(inscricao.id)}
                       disabled={
                         processando === `certificado-${inscricao.id}` ||
-                        !inscricao.presenca_confirmada
+                        !inscricao.presenca_confirmada ||
+                        inscricao.certificado_gerado
                       }
                       className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-700 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {processando === `certificado-${inscricao.id}`
                         ? 'Gerando...'
+                        : inscricao.certificado_gerado
+                        ? 'Certificado Já Gerado'
                         : 'Gerar Certificado'}
                     </button>
                   </div>
