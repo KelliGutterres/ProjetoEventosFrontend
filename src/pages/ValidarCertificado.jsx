@@ -151,18 +151,6 @@ function ValidarCertificado() {
                   >
                     {resultado.message}
                   </p>
-                  {resultado.data && (
-                    <div className="mt-3 p-3 bg-white rounded border">
-                      <p className="text-xs text-gray-600 font-mono">
-                        Código: {resultado.data.codigo}
-                      </p>
-                      {resultado.data.validado && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Status: Validado
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
