@@ -93,7 +93,7 @@ export const inscricoesAPI = {
     return response.data
   },
   cancelar: async (inscricaoId, userId) => {
-    const response = await api.delete(`http://177.44.248.78:8000/api/inscricoes/${inscricaoId}`)
+    const response = await api.delete(`http://177.44.248.78:8001/api/inscricoes/${inscricaoId}`)
     return response.data
   },
   gerarCertificado: async (presenca_id) => {
@@ -142,4 +142,3 @@ export const emailAPI = {
 }
 
 export default api
-

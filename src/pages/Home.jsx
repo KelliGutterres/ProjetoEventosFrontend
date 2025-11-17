@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { eventosAPI } from '../services/api'
+import { eventosAPI, emailAPI } from '../services/api'
 
 function Home({ setIsAuthenticated }) {
   const [eventos, setEventos] = useState([])
@@ -58,6 +58,15 @@ function Home({ setIsAuthenticated }) {
       
       const response = await eventosAPI.inscrever(eventoId, userId)
       if (response.success) {
+        // Enviar email de inscrição
+        try {
+          await emailAPI.enviarInscricao(userId, eventoId)
+          console.log('Email de inscrição enviado com sucesso')
+        } catch (emailError) {
+          // Não bloquear o fluxo se o email falhar, apenas logar o erro
+          console.error('Erro ao enviar email de inscrição:', emailError)
+        }
+        
         setMessage(`Inscrição realizada com sucesso! ID: ${eventoId}`)
         setTimeout(() => setMessage(''), 5000)
       }

@@ -174,8 +174,23 @@ function MinhasInscricoes() {
       const userData = JSON.parse(localStorage.getItem('userData') || '{}')
       const userId = userData.id
 
+      // Buscar a inscrição para obter o evento_id antes de cancelar
+      const inscricao = inscricoes.find((i) => i.id === inscricaoId)
+      const eventoId = inscricao?.evento_id || inscricao?.evento?.id
+
       const response = await inscricoesAPI.cancelar(inscricaoId, userId)
       if (response.success) {
+        // Enviar email de cancelamento
+        if (eventoId) {
+          try {
+            await emailAPI.enviarCancelamento(userId, eventoId)
+            console.log('Email de cancelamento enviado com sucesso')
+          } catch (emailError) {
+            // Não bloquear o fluxo se o email falhar, apenas logar o erro
+            console.error('Erro ao enviar email de cancelamento:', emailError)
+          }
+        }
+        
         setMessage({
           type: 'success',
           text: 'Inscrição cancelada com sucesso!',
