@@ -31,7 +31,13 @@ function Login({ setIsAuthenticated }) {
           localStorage.setItem('token', response.token)
         }
         setIsAuthenticated(true)
-        navigate('/home')
+        
+        // Verificar se é admin e redirecionar
+        if (response.data?.admin === true) {
+          navigate('/admin')
+        } else {
+          navigate('/home')
+        }
       } else {
         setError(response.message || 'E-mail ou senha incorretos')
       }

@@ -5,11 +5,13 @@ import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import ValidarCertificado from './pages/ValidarCertificado'
 import MinhasInscricoes from './pages/MinhasInscricoes'
+import Admin from './pages/Admin'
 import OfflineIndicator from './components/OfflineIndicator'
 import { useOffline } from './hooks/useOffline'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const { online, pendingCount, sync } = useOffline()
 
@@ -17,7 +19,13 @@ function App() {
     // Verificar se há token ou dados de usuário no localStorage
     const userData = localStorage.getItem('userData')
     if (userData) {
-      setIsAuthenticated(true)
+      try {
+        const data = JSON.parse(userData)
+        setIsAuthenticated(true)
+        setIsAdmin(data.admin === true)
+      } catch (error) {
+        console.error('Erro ao parsear userData:', error)
+      }
     }
     setLoading(false)
   }, [])
@@ -71,6 +79,16 @@ function App() {
           element={
             isAuthenticated ? (
               <MinhasInscricoes />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            isAuthenticated && isAdmin ? (
+              <Admin setIsAuthenticated={setIsAuthenticated} />
             ) : (
               <Navigate to="/login" />
             )
