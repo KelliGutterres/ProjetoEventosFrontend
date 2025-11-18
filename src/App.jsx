@@ -8,7 +8,6 @@ import MinhasInscricoes from './pages/MinhasInscricoes'
 import Admin from './pages/Admin'
 import OfflineIndicator from './components/OfflineIndicator'
 import { useOffline } from './hooks/useOffline'
-import AuditRouteTracker from './components/AuditRouteTracker'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -52,7 +51,6 @@ function App() {
 
   return (
     <Router>
-      <AuditRouteTracker />
       <Routes>
         <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
         <Route path="/cadastro" element={<Cadastro />} />

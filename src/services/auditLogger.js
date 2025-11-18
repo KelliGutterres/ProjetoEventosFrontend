@@ -7,7 +7,11 @@ class AuditLogger {
   constructor() {
     this.logs = []
     this.maxLogsInMemory = 1000 // Limite de logs em memória antes de limpar os mais antigos
+    this.lastSavedDate = null // Última data em que os logs foram salvos
+    this.autoSaveInterval = null // Intervalo para salvamento automático
+    this.fileHandle = null // Handle do arquivo (File System Access API)
     this.initStorage()
+    this.startAutoSave()
   }
 
   /**
@@ -199,34 +203,6 @@ class AuditLogger {
       statusText: error.response?.statusText || null,
       message: error.message || 'Unknown error',
       responseData: error.response?.data ? this.sanitizeData(error.response.data) : null,
-      user: this.getUserInfo(),
-    }
-
-    this.logs.push(log)
-    
-    // Limitar tamanho do array em memória
-    if (this.logs.length > this.maxLogsInMemory) {
-      this.logs.shift()
-    }
-
-    // Salvar no IndexedDB
-    await this.saveLogToIndexedDB(log)
-
-    return log
-  }
-
-  /**
-   * Registra uma rota acessada
-   */
-  async logRoute(pathname, search = '') {
-    const log = {
-      id: this.generateId(),
-      type: 'route',
-      timestamp: this.formatTimestamp(),
-      date: this.getDateString(),
-      path: pathname,
-      fullPath: search ? `${pathname}${search}` : pathname,
-      query: search ? this.parseQueryString(search) : null,
       user: this.getUserInfo(),
     }
 
@@ -450,6 +426,175 @@ class AuditLogger {
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
+  }
+
+  /**
+   * Inicia o salvamento automático de logs
+   * Salva os logs a cada 30 minutos ou quando a data muda
+   */
+  startAutoSave() {
+    // Não salvar imediatamente ao iniciar para evitar downloads desnecessários
+    // Salvar apenas quando houver atividade
+
+    // Configurar salvamento periódico (a cada 30 minutos)
+    this.autoSaveInterval = setInterval(() => {
+      this.saveLogsToFile().catch(err => {
+        console.warn('Erro ao salvar logs automaticamente:', err)
+      })
+    }, 30 * 60 * 1000) // 30 minutos
+
+    // Salvar quando a página for fechada
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.saveLogsToFile().catch(() => {
+          // Ignorar erros ao fechar
+        })
+      })
+    }
+  }
+
+  /**
+   * Para o salvamento automático
+   */
+  stopAutoSave() {
+    if (this.autoSaveInterval) {
+      clearInterval(this.autoSaveInterval)
+      this.autoSaveInterval = null
+    }
+  }
+
+  /**
+   * Salva logs do dia atual em arquivo
+   * Usa download automático se File System Access API não estiver disponível
+   */
+  async saveLogsToFile() {
+    const today = this.getDateString()
+    
+    // Se já salvou hoje, verificar se há novos logs
+    if (this.lastSavedDate === today) {
+      // Verificar se há novos logs desde o último salvamento
+      const recentLogs = this.logs.filter(log => log.date === today)
+      if (recentLogs.length === 0) {
+        return // Nenhum log novo
+      }
+    }
+
+    try {
+      const logs = await this.getAllLogsByDate(today)
+      
+      if (logs.length === 0) {
+        return // Nenhum log para salvar
+      }
+
+      // Tentar usar File System Access API (Chrome/Edge)
+      if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+        await this.saveWithFileSystemAPI(today, logs)
+      } else {
+        // Fallback: download automático
+        await this.downloadLogsFile(today, logs)
+      }
+
+      this.lastSavedDate = today
+    } catch (error) {
+      console.error('Erro ao salvar logs em arquivo:', error)
+      // Tentar download como fallback
+      try {
+        const logs = await this.getAllLogsByDate(today)
+        await this.downloadLogsFile(today, logs)
+      } catch (downloadError) {
+        console.error('Erro ao fazer download dos logs:', downloadError)
+      }
+    }
+  }
+
+  /**
+   * Salva logs usando File System Access API (Chrome/Edge)
+   */
+  async saveWithFileSystemAPI(date, logs) {
+    try {
+      // Se já temos um handle de arquivo para hoje, usar ele
+      if (this.fileHandle && this.lastSavedDate === date) {
+        const writable = await this.fileHandle.createWritable()
+        const content = JSON.stringify(logs, null, 2)
+        await writable.write(content)
+        await writable.close()
+        return
+      }
+
+      // Solicitar permissão para salvar arquivo
+      const options = {
+        suggestedName: `audit-${date}.json`,
+        types: [{
+          description: 'JSON files',
+          accept: { 'application/json': ['.json'] }
+        }]
+      }
+
+      // Tentar abrir arquivo existente primeiro
+      try {
+        this.fileHandle = await window.showSaveFilePicker(options)
+        const writable = await this.fileHandle.createWritable()
+        const content = JSON.stringify(logs, null, 2)
+        await writable.write(content)
+        await writable.close()
+      } catch (error) {
+        // Usuário cancelou ou erro - usar download como fallback
+        await this.downloadLogsFile(date, logs)
+      }
+    } catch (error) {
+      // File System Access API não disponível ou erro - usar download
+      await this.downloadLogsFile(date, logs)
+    }
+  }
+
+  /**
+   * Faz download automático dos logs (fallback)
+   */
+  async downloadLogsFile(date, logs) {
+    try {
+      const content = JSON.stringify(logs, null, 2)
+      const blob = new Blob([content], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `audit-${date}.json`
+      link.style.display = 'none'
+      
+      document.body.appendChild(link)
+      link.click()
+      
+      // Limpar após um tempo
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }, 100)
+    } catch (error) {
+      console.error('Erro ao fazer download dos logs:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Salva logs manualmente (para uso via console)
+   */
+  async saveLogsManually(date = null) {
+    const targetDate = date || this.getDateString()
+    const logs = await this.getAllLogsByDate(targetDate)
+    
+    if (logs.length === 0) {
+      console.log(`Nenhum log encontrado para a data ${targetDate}`)
+      return
+    }
+
+    // Tentar usar File System Access API
+    if (typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+      await this.saveWithFileSystemAPI(targetDate, logs)
+    } else {
+      await this.downloadLogsFile(targetDate, logs)
+    }
+
+    console.log(`✓ ${logs.length} logs salvos para a data ${targetDate}`)
   }
 }
 
