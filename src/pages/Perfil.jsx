@@ -121,7 +121,10 @@ function Perfil() {
         setSenha('')
         setConfirmarSenha('')
         
-        setTimeout(() => setSuccess(''), 5000)
+        // Redirecionar para Home após 1.5 segundos
+        setTimeout(() => {
+          navigate('/home')
+        }, 1500)
       } else {
         setError(response.message || 'Erro ao atualizar perfil')
       }
