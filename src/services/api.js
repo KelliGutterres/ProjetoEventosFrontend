@@ -5,6 +5,7 @@ import {
   addInscricaoToQueue, 
   addPresencaToQueue 
 } from './offlineService'
+import auditLogger from './auditLogger'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 const API_EMAIL_URL = import.meta.env.VITE_API_EMAIL_URL || 'http://localhost:3001'
@@ -24,30 +25,82 @@ const apiEmail = axios.create({
   },
 })
 
-// Interceptor para adicionar token se existir
+// Interceptor para adicionar token se existir e registrar requisições
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // Registrar requisição para auditoria
+    auditLogger.logRequest(config).catch(err => {
+      console.error('Erro ao registrar requisição no log de auditoria:', err)
+    })
     return config
   },
   (error) => {
+    // Registrar erro de requisição
+    auditLogger.logError(error).catch(err => {
+      console.error('Erro ao registrar erro no log de auditoria:', err)
+    })
     return Promise.reject(error)
   }
 )
 
-// Interceptor para adicionar token nas requisições de email
+// Interceptor para registrar respostas
+api.interceptors.response.use(
+  (response) => {
+    // Registrar resposta para auditoria
+    auditLogger.logResponse(response).catch(err => {
+      console.error('Erro ao registrar resposta no log de auditoria:', err)
+    })
+    return response
+  },
+  (error) => {
+    // Registrar erro de resposta
+    auditLogger.logError(error).catch(err => {
+      console.error('Erro ao registrar erro no log de auditoria:', err)
+    })
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor para adicionar token nas requisições de email e registrar requisições
 apiEmail.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // Registrar requisição para auditoria
+    auditLogger.logRequest(config).catch(err => {
+      console.error('Erro ao registrar requisição no log de auditoria:', err)
+    })
     return config
   },
   (error) => {
+    // Registrar erro de requisição
+    auditLogger.logError(error).catch(err => {
+      console.error('Erro ao registrar erro no log de auditoria:', err)
+    })
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor para registrar respostas da API de email
+apiEmail.interceptors.response.use(
+  (response) => {
+    // Registrar resposta para auditoria
+    auditLogger.logResponse(response).catch(err => {
+      console.error('Erro ao registrar resposta no log de auditoria:', err)
+    })
+    return response
+  },
+  (error) => {
+    // Registrar erro de resposta
+    auditLogger.logError(error).catch(err => {
+      console.error('Erro ao registrar erro no log de auditoria:', err)
+    })
     return Promise.reject(error)
   }
 )
