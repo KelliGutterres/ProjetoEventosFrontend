@@ -63,15 +63,19 @@ function MinhasInscricoes() {
       // Buscar os dados completos dos eventos para cada inscrição
       const inscricoesComEventos = await Promise.all(
         todasInscricoes.map(async (inscricao) => {
-          // Verificar se já existe presença registrada (presenca_id, presenca?.id, id_presenca, ou objeto presenca)
+          // Usar tem_presenca e tem_certificado da API
+          const temPresenca = inscricao.tem_presenca === true || inscricao.tem_presenca === 1
+          const temCertificado = inscricao.tem_certificado === true || inscricao.tem_certificado === 1
+          
+          // Preservar presenca_id se existir
           const presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
-          const temPresenca = !!presencaId || !!inscricao.presenca || inscricao.presenca_confirmada === true
           
           // Se já tiver o evento completo com descrição, retornar como está
           if (inscricao.evento?.descricao) {
             return {
               ...inscricao,
-              presenca_confirmada: temPresenca,
+              tem_presenca: temPresenca,
+              tem_certificado: temCertificado,
               presenca_id: presencaId || inscricao.presenca_id,
             }
           }
@@ -85,7 +89,8 @@ function MinhasInscricoes() {
                 return {
                   ...inscricao,
                   evento: eventoResponse.data,
-                  presenca_confirmada: temPresenca,
+                  tem_presenca: temPresenca,
+                  tem_certificado: temCertificado,
                   presenca_id: presencaId || inscricao.presenca_id,
                 }
               }
@@ -96,7 +101,8 @@ function MinhasInscricoes() {
           
           return {
             ...inscricao,
-            presenca_confirmada: temPresenca,
+            tem_presenca: temPresenca,
+            tem_certificado: temCertificado,
             presenca_id: presencaId || inscricao.presenca_id,
           }
         })
@@ -146,14 +152,14 @@ function MinhasInscricoes() {
       setInscricoes((prevInscricoes) =>
         prevInscricoes.map((inscricao) =>
           inscricao.id === inscricaoId
-            ? { ...inscricao, presenca_confirmada: true }
+            ? { ...inscricao, tem_presenca: true }
             : inscricao
         )
       )
       setInscricoesFiltradas((prevInscricoes) =>
         prevInscricoes.map((inscricao) =>
           inscricao.id === inscricaoId
-            ? { ...inscricao, presenca_confirmada: true }
+            ? { ...inscricao, tem_presenca: true }
             : inscricao
         )
       )
@@ -182,7 +188,7 @@ function MinhasInscricoes() {
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true, presenca_id: presencaId }
+              ? { ...inscricao, tem_presenca: true, presenca_id: presencaId }
               : inscricao
           )
         )
@@ -191,7 +197,7 @@ function MinhasInscricoes() {
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true, presenca_id: presencaId }
+              ? { ...inscricao, tem_presenca: true, presenca_id: presencaId }
               : inscricao
           )
         )
@@ -200,14 +206,14 @@ function MinhasInscricoes() {
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: false }
+              ? { ...inscricao, tem_presenca: false }
               : inscricao
           )
         )
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: false }
+              ? { ...inscricao, tem_presenca: false }
               : inscricao
           )
         )
@@ -222,14 +228,14 @@ function MinhasInscricoes() {
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true }
+              ? { ...inscricao, tem_presenca: true }
               : inscricao
           )
         )
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: true }
+              ? { ...inscricao, tem_presenca: true }
               : inscricao
           )
         )
@@ -238,14 +244,14 @@ function MinhasInscricoes() {
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: false }
+              ? { ...inscricao, tem_presenca: false }
               : inscricao
           )
         )
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((inscricao) =>
             inscricao.id === inscricaoId
-              ? { ...inscricao, presenca_confirmada: false }
+              ? { ...inscricao, tem_presenca: false }
               : inscricao
           )
         )
@@ -339,13 +345,22 @@ function MinhasInscricoes() {
         return
       }
 
+      // Verificar se tem presença registrada
+      if (!inscricao.tem_presenca) {
+        setMessage({
+          type: 'error',
+          text: 'Presença não encontrada. Registre a presença primeiro.',
+        })
+        return
+      }
+
       // Obter o presenca_id da inscrição (pode estar em presenca_id, presenca?.id, ou id_presenca)
       const presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
       
       if (!presencaId) {
         setMessage({
           type: 'error',
-          text: 'Presença não encontrada. Registre a presença primeiro.',
+          text: 'ID de presença não encontrado. Tente novamente.',
         })
         return
       }
@@ -354,14 +369,14 @@ function MinhasInscricoes() {
       setInscricoes((prevInscricoes) =>
         prevInscricoes.map((insc) =>
           insc.id === inscricaoId
-            ? { ...insc, certificado_gerado: true }
+            ? { ...insc, tem_certificado: true }
             : insc
         )
       )
       setInscricoesFiltradas((prevInscricoes) =>
         prevInscricoes.map((insc) =>
           insc.id === inscricaoId
-            ? { ...insc, certificado_gerado: true }
+            ? { ...insc, tem_certificado: true }
             : insc
         )
       )
@@ -405,14 +420,14 @@ function MinhasInscricoes() {
         setInscricoes((prevInscricoes) =>
           prevInscricoes.map((insc) =>
             insc.id === inscricaoId
-              ? { ...insc, certificado_gerado: false }
+              ? { ...insc, tem_certificado: false }
               : insc
           )
         )
         setInscricoesFiltradas((prevInscricoes) =>
           prevInscricoes.map((insc) =>
             insc.id === inscricaoId
-              ? { ...insc, certificado_gerado: false }
+              ? { ...insc, tem_certificado: false }
               : insc
           )
         )
@@ -426,14 +441,14 @@ function MinhasInscricoes() {
       setInscricoes((prevInscricoes) =>
         prevInscricoes.map((insc) =>
           insc.id === inscricaoId
-            ? { ...insc, certificado_gerado: false }
+            ? { ...insc, tem_certificado: false }
             : insc
         )
       )
       setInscricoesFiltradas((prevInscricoes) =>
         prevInscricoes.map((insc) =>
           insc.id === inscricaoId
-            ? { ...insc, certificado_gerado: false }
+            ? { ...insc, tem_certificado: false }
             : insc
         )
       )
@@ -599,7 +614,7 @@ function MinhasInscricoes() {
                           </svg>
                           Inscrito em: {formatarData(inscricao.created_at)}
                         </div>
-                        {inscricao.presenca_confirmada && (
+                        {inscricao.tem_presenca && (
                           <div className="flex items-center text-green-600 font-semibold">
                             <svg
                               className="w-4 h-4 mr-2"
@@ -626,13 +641,13 @@ function MinhasInscricoes() {
                       onClick={() => handleRegistrarPresenca(inscricao.id)}
                       disabled={
                         processando === `presenca-${inscricao.id}` ||
-                        inscricao.presenca_confirmada
+                        inscricao.tem_presenca
                       }
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {processando === `presenca-${inscricao.id}`
                         ? 'Registrando...'
-                        : inscricao.presenca_confirmada
+                        : inscricao.tem_presenca
                         ? 'Presença Já Registrada'
                         : 'Registrar Presença'}
                     </button>
@@ -651,14 +666,14 @@ function MinhasInscricoes() {
                       onClick={() => handleGerarCertificado(inscricao.id)}
                       disabled={
                         processando === `certificado-${inscricao.id}` ||
-                        !inscricao.presenca_confirmada ||
-                        inscricao.certificado_gerado
+                        !inscricao.tem_presenca ||
+                        inscricao.tem_certificado
                       }
                       className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-700 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {processando === `certificado-${inscricao.id}`
                         ? 'Gerando...'
-                        : inscricao.certificado_gerado
+                        : inscricao.tem_certificado
                         ? 'Certificado Já Gerado'
                         : 'Gerar Certificado'}
                     </button>

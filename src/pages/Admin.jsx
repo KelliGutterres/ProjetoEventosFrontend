@@ -238,13 +238,17 @@ function Admin({ setIsAuthenticated }) {
                         {inscricao.id}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {inscricao.usuario?.nome || 
+                        {inscricao.email_usuario || 
+                         inscricao.usuario?.email ||
+                         inscricao.usuario?.nome || 
                          inscricao.usuario?.name || 
-                         `ID: ${inscricao.usuario_id || 'N/A'}`}
+                         'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {inscricao.evento?.descricao || 
-                         `Evento ID: ${inscricao.evento_id || 'N/A'}`}
+                        {inscricao.nome_evento ||
+                         inscricao.evento?.nome ||
+                         inscricao.evento?.descricao || 
+                         'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatarData(inscricao.created_at)}
