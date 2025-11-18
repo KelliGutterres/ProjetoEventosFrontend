@@ -164,14 +164,28 @@ function ValidarCertificado() {
             )
           })()}
 
-          {/* Back Button */}
-          <div className="text-center pt-4 border-t border-gray-200">
-            <button
-              onClick={() => navigate('/home')}
-              className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
-            >
-              ← Voltar para Home
-            </button>
+          {/* Navigation Buttons */}
+          <div className="text-center pt-4 border-t border-gray-200 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => navigate('/home')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                ← Voltar para Home
+              </button>
+              <button
+                onClick={() => navigate('/minhas-inscricoes')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                Minhas Inscrições
+              </button>
+              <button
+                onClick={() => navigate('/perfil')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                Perfil
+              </button>
+            </div>
           </div>
         </div>
       </div>

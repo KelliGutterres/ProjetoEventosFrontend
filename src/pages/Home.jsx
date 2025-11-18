@@ -166,6 +166,12 @@ function Home({ setIsAuthenticated }) {
                 Validar Certificado
               </button>
               <button
+                onClick={() => navigate('/perfil')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                Perfil
+              </button>
+              <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
               >

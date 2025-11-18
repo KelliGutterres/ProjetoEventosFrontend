@@ -138,6 +138,14 @@ export const usuariosAPI = {
       throw error
     }
   },
+  atualizar: async (id, dados) => {
+    try {
+      const response = await api.put(`/api/usuarios/${id}`, dados)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  },
 }
 
 export const authAPI = {

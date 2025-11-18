@@ -5,6 +5,7 @@ import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import ValidarCertificado from './pages/ValidarCertificado'
 import MinhasInscricoes from './pages/MinhasInscricoes'
+import Perfil from './pages/Perfil'
 import Admin from './pages/Admin'
 import OfflineIndicator from './components/OfflineIndicator'
 import { useOffline } from './hooks/useOffline'
@@ -79,6 +80,16 @@ function App() {
           element={
             isAuthenticated ? (
               <MinhasInscricoes />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            isAuthenticated ? (
+              <Perfil />
             ) : (
               <Navigate to="/login" />
             )

@@ -529,12 +529,26 @@ function MinhasInscricoes() {
                 Olá, {userData.nome || 'Usuário'}!
               </p>
             </div>
-            <button
-              onClick={() => navigate('/home')}
-              className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-            >
-              ← Voltar para Home
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => navigate('/home')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                ← Voltar para Home
+              </button>
+              <button
+                onClick={() => navigate('/validar-certificado')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                Validar Certificado
+              </button>
+              <button
+                onClick={() => navigate('/perfil')}
+                className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                Perfil
+              </button>
+            </div>
           </div>
         </div>
       </header>
