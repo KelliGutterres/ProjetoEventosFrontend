@@ -67,7 +67,8 @@ function MinhasInscricoes() {
           const temPresenca = inscricao.tem_presenca === true || inscricao.tem_presenca === 1
           const temCertificado = inscricao.tem_certificado === true || inscricao.tem_certificado === 1
           
-          // Preservar presenca_id se existir
+          // Priorizar presenca_id que vem diretamente da API de inscrições
+          // Se a presença foi registrada pelo admin, o presenca_id virá na resposta da API
           const presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
           
           // Se já tiver o evento completo com descrição, retornar como está
@@ -354,8 +355,46 @@ function MinhasInscricoes() {
         return
       }
 
-      // Obter o presenca_id da inscrição (pode estar em presenca_id, presenca?.id, ou id_presenca)
-      const presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
+      // Obter o presenca_id da inscrição
+      // Priorizar presenca_id que vem diretamente da API de inscrições
+      let presencaId = inscricao.presenca_id || inscricao.presenca?.id || inscricao.id_presenca
+      
+      // Se não encontrou o presenca_id no estado local, buscar novamente da API
+      // Isso resolve o caso onde o admin registrou a presença e o usuário ainda não recarregou a página
+      if (!presencaId && isOnline()) {
+        try {
+          const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+          const userId = userData.id
+          if (userId) {
+            const response = await inscricoesAPI.listar(userId)
+            if (response.success && response.data) {
+              const inscricaoAtualizada = response.data.find((i) => i.id === inscricaoId)
+              if (inscricaoAtualizada) {
+                presencaId = inscricaoAtualizada.presenca_id || inscricaoAtualizada.presenca?.id || inscricaoAtualizada.id_presenca
+                // Atualizar o estado local com o presenca_id encontrado
+                if (presencaId) {
+                  setInscricoes((prevInscricoes) =>
+                    prevInscricoes.map((insc) =>
+                      insc.id === inscricaoId
+                        ? { ...insc, presenca_id: presencaId }
+                        : insc
+                    )
+                  )
+                  setInscricoesFiltradas((prevInscricoes) =>
+                    prevInscricoes.map((insc) =>
+                      insc.id === inscricaoId
+                        ? { ...insc, presenca_id: presencaId }
+                        : insc
+                    )
+                  )
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao buscar presenca_id da API:', error)
+        }
+      }
       
       if (!presencaId) {
         setMessage({
