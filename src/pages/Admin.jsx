@@ -382,6 +382,89 @@ function Admin({ setIsAuthenticated }) {
                     : 'Nenhuma inscrição encontrada'}
                 </p>
               </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Participante
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Evento
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Data de Inscrição
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Presença
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {inscricoesFiltradas.map((inscricao) => (
+                        <tr key={inscricao.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {inscricao.id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {inscricao.email_usuario || 
+                             inscricao.usuario?.email ||
+                             inscricao.usuario?.nome || 
+                             inscricao.usuario?.name || 
+                             'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {inscricao.nome_evento ||
+                             inscricao.evento?.nome ||
+                             inscricao.evento?.descricao || 
+                             'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatarData(inscricao.created_at)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {(() => {
+                              // Verificar se a presença já foi registrada
+                              const temPresenca = 
+                                inscricao.presenca_confirmada === true || 
+                                inscricao.presenca_confirmada === 1 ||
+                                inscricao.presenca_id || 
+                                inscricao.presenca?.id ||
+                                inscricao.presenca
+                              
+                              if (temPresenca) {
+                                return (
+                                  <span className="px-2 py-1 text-xs font-semibold text-green-600 bg-green-100 rounded">
+                                    Confirmada
+                                  </span>
+                                )
+                              } else {
+                                return (
+                                  <button
+                                    onClick={() => handleRegistrarPresenca(inscricao.id)}
+                                    disabled={processando === inscricao.id}
+                                    className="px-3 py-1 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {processando === inscricao.id
+                                      ? 'Registrando...'
+                                      : 'Registrar Presença'}
+                                  </button>
+                                )
+                              }
+                            })()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
 
