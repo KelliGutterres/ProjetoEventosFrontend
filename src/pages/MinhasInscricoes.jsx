@@ -421,11 +421,47 @@ function MinhasInscricoes() {
       )
 
       const response = await inscricoesAPI.gerarCertificado(presencaId)
-      if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Certificado gerado com sucesso!',
-        })
+      if (response.success && response.data) {
+        // Fazer download do arquivo do certificado
+        try {
+          // Verificar se tem conteúdo em base64
+          if (response.data.conteudo) {
+            // Converter base64 para blob e fazer download
+            const byteCharacters = atob(response.data.conteudo)
+            const byteNumbers = new Array(byteCharacters.length)
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i)
+            }
+            const byteArray = new Uint8Array(byteNumbers)
+            const blob = new Blob([byteArray], { type: response.data.tipo || 'application/pdf' })
+            
+            // Criar link temporário e fazer download
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = response.data.nome_arquivo || `certificado_${presencaId}.pdf`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(url)
+            
+            setMessage({
+              type: 'success',
+              text: response.message || 'Certificado gerado e baixado com sucesso!',
+            })
+          } else {
+            setMessage({
+              type: 'success',
+              text: response.message || 'Certificado gerado com sucesso!',
+            })
+          }
+        } catch (downloadError) {
+          console.error('Erro ao fazer download do certificado:', downloadError)
+          setMessage({
+            type: 'success',
+            text: response.message || 'Certificado gerado com sucesso! (Erro ao fazer download)',
+          })
+        }
       } else {
         // Reverter o estado se a operação falhou
         setInscricoes((prevInscricoes) =>
