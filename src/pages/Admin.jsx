@@ -94,9 +94,12 @@ function Admin({ setIsAuthenticated }) {
       const responseUsuario = await usuariosAPI.criar(dadosUsuario)
       
       if (!responseUsuario.success) {
+        const errorMessage = responseUsuario.message || 
+                            responseUsuario.error?.message ||
+                            'Erro ao cadastrar usuário'
         setMessage({
           type: 'error',
-          text: responseUsuario.message || 'Erro ao cadastrar usuário',
+          text: errorMessage,
         })
         return
       }
@@ -106,6 +109,14 @@ function Admin({ setIsAuthenticated }) {
       const userId = responseUsuario.data?.id || responseUsuario.data?.data?.id
       const isUsuarioOffline = responseUsuario.offline || false
       
+      if (!userId) {
+        setMessage({
+          type: 'error',
+          text: 'Erro: ID do usuário não foi retornado pela API',
+        })
+        return
+      }
+      
       // Se estiver offline, usar o ID local diretamente (já vem no formato correto)
       // Se estiver online, usar o ID do servidor
       const userIdParaInscricao = userId
@@ -114,9 +125,12 @@ function Admin({ setIsAuthenticated }) {
       const responseInscricao = await eventosAPI.inscrever(eventoSelecionado.id, userIdParaInscricao)
       
       if (!responseInscricao.success) {
+        const errorMessage = responseInscricao.message || 
+                            responseInscricao.error?.message ||
+                            'Erro ao realizar inscrição'
         setMessage({
           type: 'error',
-          text: responseInscricao.message || 'Erro ao realizar inscrição',
+          text: errorMessage,
         })
         return
       }
@@ -124,6 +138,14 @@ function Admin({ setIsAuthenticated }) {
       // Obter ID da inscrição
       const inscricaoId = responseInscricao.data?.id || responseInscricao.data?.data?.id
       const isInscricaoOffline = responseInscricao.offline || false
+      
+      if (!inscricaoId) {
+        setMessage({
+          type: 'error',
+          text: 'Erro: ID da inscrição não foi retornado pela API',
+        })
+        return
+      }
       
       // Se estiver offline, usar o ID local diretamente
       // Se estiver online, usar o ID do servidor
@@ -133,9 +155,12 @@ function Admin({ setIsAuthenticated }) {
       const responsePresenca = await presencasAPI.registrar(inscricaoIdParaPresenca)
       
       if (!responsePresenca.success) {
+        const errorMessage = responsePresenca.message || 
+                            responsePresenca.error?.message ||
+                            'Erro ao registrar presença'
         setMessage({
           type: 'error',
-          text: responsePresenca.message || 'Erro ao registrar presença',
+          text: errorMessage,
         })
         return
       }
@@ -161,9 +186,29 @@ function Admin({ setIsAuthenticated }) {
 
     } catch (error) {
       console.error('Erro no fluxo completo:', error)
+      console.error('Detalhes do erro:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+      })
+      
+      // Extrair mensagem de erro mais específica
+      let errorMessage = 'Erro ao processar. Tente novamente.'
+      
+      if (error.response?.data) {
+        // Tentar diferentes formatos de resposta de erro
+        errorMessage = error.response.data.message || 
+                      error.response.data.error?.message ||
+                      error.response.data.error ||
+                      (typeof error.response.data === 'string' ? error.response.data : errorMessage)
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       setMessage({
         type: 'error',
-        text: error.response?.data?.message || 'Erro ao processar. Tente novamente.',
+        text: errorMessage,
       })
     }
   }

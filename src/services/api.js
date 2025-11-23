@@ -124,18 +124,41 @@ export const usuariosAPI = {
       const response = await api.post('/api/usuarios', dados)
       return response.data
     } catch (error) {
-      // Se a requisição falhar e for erro de rede, tentar salvar offline
-      if (!error.response && !isOnline()) {
-        console.log('Erro de rede: salvando cadastro de usuário na fila')
-        const usuarioOffline = addUsuarioToQueue(dados)
-        return {
-          success: true,
-          message: 'Usuário cadastrado offline. Será sincronizado quando voltar online.',
-          data: { id: usuarioOffline.id_local },
-          offline: true,
+      console.error('Erro ao criar usuário:', error)
+      console.error('Detalhes:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+      })
+      
+      // Se a requisição falhar e for erro de rede (sem resposta), tentar salvar offline
+      if (!error.response) {
+        if (!isOnline()) {
+          console.log('Erro de rede: salvando cadastro de usuário na fila')
+          const usuarioOffline = addUsuarioToQueue(dados)
+          return {
+            success: true,
+            message: 'Usuário cadastrado offline. Será sincronizado quando voltar online.',
+            data: { id: usuarioOffline.id_local },
+            offline: true,
+          }
         }
+        // Se estiver online mas sem resposta, pode ser problema de conexão
+        throw error
       }
-      throw error
+      
+      // Se a API retornou um erro (400, 500, etc), retornar no formato esperado
+      const errorData = error.response.data || {}
+      return {
+        success: false,
+        message: errorData.message || 
+                errorData.error?.message || 
+                errorData.error ||
+                `Erro ao cadastrar usuário: ${error.response.statusText || 'Erro desconhecido'}`,
+        error: errorData,
+        status: error.response.status,
+      }
     }
   },
   atualizar: async (id, dados) => {
