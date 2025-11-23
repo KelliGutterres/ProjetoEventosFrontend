@@ -232,8 +232,13 @@ export const eventosAPI = {
 
 export const certificadoAPI = {
   validar: async (codigo) => {
-    const response = await api.post('http://177.44.248.78:8001/api/certificados/validacao', {
+    // Criar uma requisição sem token para validação pública
+    const response = await axios.post('http://177.44.248.78:8001/api/certificados/validacao', {
       codigo,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
     return response.data
   },

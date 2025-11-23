@@ -65,16 +65,7 @@ function App() {
             )
           }
         />
-        <Route
-          path="/validar-certificado"
-          element={
-            isAuthenticated ? (
-              <ValidarCertificado />
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
+        <Route path="/validar-certificado" element={<ValidarCertificado />} />
         <Route
           path="/minhas-inscricoes"
           element={

@@ -128,17 +128,27 @@ function Login({ setIsAuthenticated }) {
             </button>
           </form>
 
-          {/* Cadastro Link */}
-          <div className="text-center pt-4 border-t border-gray-200">
-            <p className="text-gray-600">
-              Não tem uma conta?{' '}
+          {/* Links */}
+          <div className="space-y-3 pt-4 border-t border-gray-200">
+            <div className="text-center">
+              <p className="text-gray-600">
+                Não tem uma conta?{' '}
+                <button
+                  onClick={() => navigate('/cadastro')}
+                  className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                >
+                  Cadastre-se
+                </button>
+              </p>
+            </div>
+            <div className="text-center">
               <button
-                onClick={() => navigate('/cadastro')}
-                className="text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+                onClick={() => navigate('/validar-certificado')}
+                className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors text-sm"
               >
-                Cadastre-se
+                Validar Certificado
               </button>
-            </p>
+            </div>
           </div>
         </div>
       </div>
