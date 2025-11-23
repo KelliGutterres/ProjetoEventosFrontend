@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { inscricoesAPI, presencasAPI, eventosAPI, usuariosAPI } from '../services/api'
+import { inscricoesAPI, presencasAPI, eventosAPI, usuariosAPI, emailAPI } from '../services/api'
 import CadastroRapidoModal from '../components/CadastroRapidoModal'
 
 function Admin({ setIsAuthenticated }) {
@@ -148,6 +148,21 @@ function Admin({ setIsAuthenticated }) {
         return
       }
       
+      // Enviar email de inscrição (apenas se estiver online e não for offline)
+      if (!isInscricaoOffline && !isUsuarioOffline) {
+        try {
+          // Usar o ID do servidor para o email (userId já é do servidor se não estiver offline)
+          const userIdServidor = isUsuarioOffline ? null : userId
+          if (userIdServidor) {
+            await emailAPI.enviarInscricao(userIdServidor, eventoSelecionado.id)
+            console.log('Email de inscrição enviado com sucesso')
+          }
+        } catch (emailError) {
+          // Não bloquear o fluxo se o email falhar, apenas logar o erro
+          console.error('Erro ao enviar email de inscrição:', emailError)
+        }
+      }
+      
       // Se estiver offline, usar o ID local diretamente
       // Se estiver online, usar o ID do servidor
       const inscricaoIdParaPresenca = inscricaoId
@@ -167,6 +182,21 @@ function Admin({ setIsAuthenticated }) {
       }
 
       const isPresencaOffline = responsePresenca.offline || false
+
+      // Enviar email de presença (apenas se estiver online e não for offline)
+      if (!isPresencaOffline && !isUsuarioOffline && !isInscricaoOffline) {
+        try {
+          // Usar o ID do servidor para o email (userId já é do servidor se não estiver offline)
+          const userIdServidor = isUsuarioOffline ? null : userId
+          if (userIdServidor) {
+            await emailAPI.enviarPresenca(userIdServidor, eventoSelecionado.id)
+            console.log('Email de presença enviado com sucesso')
+          }
+        } catch (emailError) {
+          // Não bloquear o fluxo se o email falhar, apenas logar o erro
+          console.error('Erro ao enviar email de presença:', emailError)
+        }
+      }
 
       // Sucesso!
       setMessage({
