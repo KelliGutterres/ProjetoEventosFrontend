@@ -1,18 +1,27 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { inscricoesAPI, presencasAPI } from '../services/api'
+import { inscricoesAPI, presencasAPI, eventosAPI, usuariosAPI } from '../services/api'
+import CadastroRapidoModal from '../components/CadastroRapidoModal'
 
 function Admin({ setIsAuthenticated }) {
   const [inscricoes, setInscricoes] = useState([])
   const [inscricoesFiltradas, setInscricoesFiltradas] = useState([])
+  const [eventos, setEventos] = useState([])
+  const [eventosFiltrados, setEventosFiltrados] = useState([])
   const [filtroNome, setFiltroNome] = useState('')
+  const [filtroEvento, setFiltroEvento] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadingEventos, setLoadingEventos] = useState(true)
   const [processando, setProcessando] = useState(null)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [showCadastroModal, setShowCadastroModal] = useState(false)
+  const [eventoSelecionado, setEventoSelecionado] = useState(null)
+  const [abaAtiva, setAbaAtiva] = useState('inscricoes') // 'inscricoes' ou 'eventos'
   const navigate = useNavigate()
 
   useEffect(() => {
     carregarInscricoes()
+    carregarEventos()
   }, [])
 
   useEffect(() => {
@@ -29,6 +38,18 @@ function Admin({ setIsAuthenticated }) {
     }
   }, [filtroNome, inscricoes])
 
+  useEffect(() => {
+    if (filtroEvento) {
+      const filtrado = eventos.filter((evento) =>
+        evento.id.toString().includes(filtroEvento) ||
+        evento.descricao?.toLowerCase().includes(filtroEvento.toLowerCase())
+      )
+      setEventosFiltrados(filtrado)
+    } else {
+      setEventosFiltrados(eventos)
+    }
+  }, [filtroEvento, eventos])
+
   const carregarInscricoes = async () => {
     try {
       setLoading(true)
@@ -44,6 +65,106 @@ function Admin({ setIsAuthenticated }) {
       console.error('Erro ao carregar inscrições:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const carregarEventos = async () => {
+    try {
+      setLoadingEventos(true)
+      const response = await eventosAPI.listar()
+      if (response.success) {
+        setEventos(response.data || [])
+        setEventosFiltrados(response.data || [])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar eventos:', error)
+    } finally {
+      setLoadingEventos(false)
+    }
+  }
+
+  const handleInscreverEvento = (evento) => {
+    setEventoSelecionado(evento)
+    setShowCadastroModal(true)
+  }
+
+  const handleCadastroCompleto = async (dadosUsuario) => {
+    try {
+      // 1. Criar usuário
+      const responseUsuario = await usuariosAPI.criar(dadosUsuario)
+      
+      if (!responseUsuario.success) {
+        setMessage({
+          type: 'error',
+          text: responseUsuario.message || 'Erro ao cadastrar usuário',
+        })
+        return
+      }
+
+      // Obter ID do usuário (pode ser local se offline)
+      // A API retorna { data: { id: ... } } ou { data: { data: { id: ... } } }
+      const userId = responseUsuario.data?.id || responseUsuario.data?.data?.id
+      const isUsuarioOffline = responseUsuario.offline || false
+      
+      // Se estiver offline, usar o ID local diretamente (já vem no formato correto)
+      // Se estiver online, usar o ID do servidor
+      const userIdParaInscricao = userId
+
+      // 2. Realizar inscrição
+      const responseInscricao = await eventosAPI.inscrever(eventoSelecionado.id, userIdParaInscricao)
+      
+      if (!responseInscricao.success) {
+        setMessage({
+          type: 'error',
+          text: responseInscricao.message || 'Erro ao realizar inscrição',
+        })
+        return
+      }
+
+      // Obter ID da inscrição
+      const inscricaoId = responseInscricao.data?.id || responseInscricao.data?.data?.id
+      const isInscricaoOffline = responseInscricao.offline || false
+      
+      // Se estiver offline, usar o ID local diretamente
+      // Se estiver online, usar o ID do servidor
+      const inscricaoIdParaPresenca = inscricaoId
+
+      // 3. Registrar presença
+      const responsePresenca = await presencasAPI.registrar(inscricaoIdParaPresenca)
+      
+      if (!responsePresenca.success) {
+        setMessage({
+          type: 'error',
+          text: responsePresenca.message || 'Erro ao registrar presença',
+        })
+        return
+      }
+
+      const isPresencaOffline = responsePresenca.offline || false
+
+      // Sucesso!
+      setMessage({
+        type: 'success',
+        text: isUsuarioOffline || isInscricaoOffline || isPresencaOffline
+          ? 'Usuário cadastrado, inscrito e presença registrada offline! Será sincronizado quando voltar online.'
+          : 'Usuário cadastrado, inscrito e presença registrada com sucesso!',
+      })
+
+      // Fechar modal e recarregar dados
+      setShowCadastroModal(false)
+      setEventoSelecionado(null)
+      
+      // Recarregar inscrições após um breve delay
+      setTimeout(() => {
+        carregarInscricoes()
+      }, 1000)
+
+    } catch (error) {
+      console.error('Erro no fluxo completo:', error)
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Erro ao processar. Tente novamente.',
+      })
     }
   }
 
@@ -155,25 +276,75 @@ function Admin({ setIsAuthenticated }) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filtro */}
+        {/* Tabs */}
         <div className="mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <label
-              htmlFor="filtro"
-              className="block text-sm font-medium text-gray-700 mb-2"
+          <div className="bg-white rounded-xl shadow-sm p-2 flex gap-2">
+            <button
+              onClick={() => setAbaAtiva('inscricoes')}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                abaAtiva === 'inscricoes'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
             >
-              Filtrar por Nome do Participante
-            </label>
-            <input
-              id="filtro"
-              type="text"
-              value={filtroNome}
-              onChange={(e) => setFiltroNome(e.target.value)}
-              className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-              placeholder="Digite o nome do participante..."
-            />
+              Inscrições
+            </button>
+            <button
+              onClick={() => setAbaAtiva('eventos')}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                abaAtiva === 'eventos'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Eventos Disponíveis
+            </button>
           </div>
         </div>
+
+        {/* Filtro - Inscrições */}
+        {abaAtiva === 'inscricoes' && (
+          <div className="mb-6">
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <label
+                htmlFor="filtro"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Filtrar por Nome do Participante
+              </label>
+              <input
+                id="filtro"
+                type="text"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                placeholder="Digite o nome do participante..."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Filtro - Eventos */}
+        {abaAtiva === 'eventos' && (
+          <div className="mb-6">
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <label
+                htmlFor="filtroEvento"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Filtrar Eventos
+              </label>
+              <input
+                id="filtroEvento"
+                type="text"
+                value={filtroEvento}
+                onChange={(e) => setFiltroEvento(e.target.value)}
+                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                placeholder="Digite o ID ou nome do evento..."
+              />
+            </div>
+          </div>
+        )}
 
         {/* Message */}
         {message.text && (
@@ -194,21 +365,125 @@ function Admin({ setIsAuthenticated }) {
           </div>
         )}
 
-        {/* Loading */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Carregando inscrições...</p>
-          </div>
-        ) : inscricoesFiltradas.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-            <p className="text-gray-600">
-              {filtroNome
-                ? 'Nenhuma inscrição encontrada com este nome'
-                : 'Nenhuma inscrição encontrada'}
-            </p>
-          </div>
-        ) : (
+        {/* Conteúdo da Aba de Inscrições */}
+        {abaAtiva === 'inscricoes' && (
+          <>
+            {/* Loading */}
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Carregando inscrições...</p>
+              </div>
+            ) : inscricoesFiltradas.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                <p className="text-gray-600">
+                  {filtroNome
+                    ? 'Nenhuma inscrição encontrada com este nome'
+                    : 'Nenhuma inscrição encontrada'}
+                </p>
+              </div>
+          </>
+        )}
+
+        {/* Conteúdo da Aba de Eventos */}
+        {abaAtiva === 'eventos' && (
+          <>
+            {/* Loading */}
+            {loadingEventos ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Carregando eventos...</p>
+              </div>
+            ) : eventosFiltrados.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+                <p className="text-gray-600">
+                  {filtroEvento
+                    ? 'Nenhum evento encontrado'
+                    : 'Nenhum evento disponível no momento'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {eventosFiltrados.map((evento) => (
+                  <div
+                    key={evento.id}
+                    className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            {evento.descricao}
+                          </h3>
+                          <div className="flex items-center text-sm text-gray-600 mb-1">
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                            {formatarData(evento.data_inicio)}
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            Até {formatarData(evento.data_final)}
+                          </div>
+                        </div>
+                        {evento.cancelado === 1 && (
+                          <span className="px-2 py-1 text-xs font-semibold text-red-600 bg-red-100 rounded">
+                            Cancelado
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <button
+                          onClick={() => handleInscreverEvento(evento)}
+                          disabled={evento.cancelado === 1}
+                          className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                          {evento.cancelado === 1 ? 'Evento Cancelado' : 'Inscrever-se'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Modal de Cadastro Rápido */}
+        {showCadastroModal && eventoSelecionado && (
+          <CadastroRapidoModal
+            evento={eventoSelecionado}
+            onClose={() => {
+              setShowCadastroModal(false)
+              setEventoSelecionado(null)
+            }}
+            onSuccess={handleCadastroCompleto}
+          />
+        )}
+      </main>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
