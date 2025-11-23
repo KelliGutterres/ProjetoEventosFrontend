@@ -312,28 +312,88 @@ export const presencasAPI = {
 
 export const emailAPI = {
   enviarPresenca: async (idUsuario, idEvento) => {
+    // Não enviar email se estiver offline
+    if (!isOnline()) {
+      console.log('Modo offline: email de presença não será enviado')
+      return {
+        success: false,
+        message: 'Email não enviado: modo offline',
+        offline: true,
+      }
+    }
+
     // Chama a API de emails para enviar email de presença
-    const response = await apiEmail.post('/api/email/presenca', {
-      id_usuario: parseInt(idUsuario),
-      id_evento: parseInt(idEvento),
-    })
-    return response.data
+    try {
+      const response = await apiEmail.post('/api/email/presenca', {
+        id_usuario: parseInt(idUsuario),
+        id_evento: parseInt(idEvento),
+      })
+      return response.data
+    } catch (error) {
+      console.error('Erro ao enviar email de presença:', error)
+      // Não lançar erro, apenas retornar falha silenciosa
+      return {
+        success: false,
+        message: 'Erro ao enviar email de presença',
+        error: error.message,
+      }
+    }
   },
   enviarInscricao: async (idUsuario, idEvento) => {
+    // Não enviar email se estiver offline
+    if (!isOnline()) {
+      console.log('Modo offline: email de inscrição não será enviado')
+      return {
+        success: false,
+        message: 'Email não enviado: modo offline',
+        offline: true,
+      }
+    }
+
     // Chama a API de emails para enviar email de inscrição
-    const response = await apiEmail.post('/api/email/inscricao', {
-      id_usuario: parseInt(idUsuario),
-      id_evento: parseInt(idEvento),
-    })
-    return response.data
+    try {
+      const response = await apiEmail.post('/api/email/inscricao', {
+        id_usuario: parseInt(idUsuario),
+        id_evento: parseInt(idEvento),
+      })
+      return response.data
+    } catch (error) {
+      console.error('Erro ao enviar email de inscrição:', error)
+      // Não lançar erro, apenas retornar falha silenciosa
+      return {
+        success: false,
+        message: 'Erro ao enviar email de inscrição',
+        error: error.message,
+      }
+    }
   },
   enviarCancelamento: async (idUsuario, idEvento) => {
+    // Não enviar email se estiver offline
+    if (!isOnline()) {
+      console.log('Modo offline: email de cancelamento não será enviado')
+      return {
+        success: false,
+        message: 'Email não enviado: modo offline',
+        offline: true,
+      }
+    }
+
     // Chama a API de emails para enviar email de cancelamento
-    const response = await apiEmail.post('/api/email/cancelar', {
-      id_usuario: parseInt(idUsuario),
-      id_evento: parseInt(idEvento),
-    })
-    return response.data
+    try {
+      const response = await apiEmail.post('/api/email/cancelar', {
+        id_usuario: parseInt(idUsuario),
+        id_evento: parseInt(idEvento),
+      })
+      return response.data
+    } catch (error) {
+      console.error('Erro ao enviar email de cancelamento:', error)
+      // Não lançar erro, apenas retornar falha silenciosa
+      return {
+        success: false,
+        message: 'Erro ao enviar email de cancelamento',
+        error: error.message,
+      }
+    }
   },
 }
 
