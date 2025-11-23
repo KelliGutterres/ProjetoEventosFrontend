@@ -421,39 +421,11 @@ function MinhasInscricoes() {
       )
 
       const response = await inscricoesAPI.gerarCertificado(presencaId)
-      if (response.success && response.data) {
-        // Fazer download do arquivo do certificado
-        try {
-          const conteudo = response.data.conteudo || ''
-          const nomeArquivo = response.data.nome_arquivo || `certificado_${presencaId}.txt`
-          const tipo = response.data.tipo || 'text/plain'
-          
-          // Criar um Blob com o conteúdo
-          const blob = new Blob([conteudo], { type: tipo })
-          
-          // Criar um link temporário para download
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = nomeArquivo
-          document.body.appendChild(link)
-          link.click()
-          
-          // Limpar
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-          
-          setMessage({
-            type: 'success',
-            text: response.message || 'Certificado gerado e baixado com sucesso!',
-          })
-        } catch (downloadError) {
-          console.error('Erro ao fazer download do certificado:', downloadError)
-          setMessage({
-            type: 'success',
-            text: response.message || 'Certificado gerado com sucesso! (Erro ao fazer download)',
-          })
-        }
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: response.message || 'Certificado gerado com sucesso!',
+        })
       } else {
         // Reverter o estado se a operação falhou
         setInscricoes((prevInscricoes) =>
