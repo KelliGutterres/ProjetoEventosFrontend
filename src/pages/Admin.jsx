@@ -249,8 +249,34 @@ function Admin({ setIsAuthenticated }) {
       setProcessando(inscricaoId)
       setMessage({ type: '', text: '' })
 
+      // Buscar a inscrição para obter os dados do usuário e evento
+      const inscricao = inscricoes.find((i) => i.id === inscricaoId)
+      if (!inscricao) {
+        setMessage({
+          type: 'error',
+          text: 'Inscrição não encontrada.',
+        })
+        return
+      }
+
+      // Obter IDs do usuário e evento
+      const userId = inscricao.usuario_id || inscricao.usuario?.id || inscricao.email_usuario
+      const eventoId = inscricao.evento_id || inscricao.evento?.id
+
       const response = await presencasAPI.registrar(inscricaoId)
       if (response.success) {
+        // Enviar email de presença (apenas se estiver online e não for offline)
+        const isPresencaOffline = response.offline || false
+        if (!isPresencaOffline && userId && eventoId) {
+          try {
+            await emailAPI.enviarPresenca(userId, eventoId)
+            console.log('Email de presença enviado com sucesso')
+          } catch (emailError) {
+            // Não bloquear o fluxo se o email falhar, apenas logar o erro
+            console.error('Erro ao enviar email de presença:', emailError)
+          }
+        }
+
         setMessage({
           type: 'success',
           text: 'Presença registrada com sucesso!',
