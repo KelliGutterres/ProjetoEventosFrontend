@@ -16,6 +16,7 @@ function Admin({ setIsAuthenticated }) {
   const [message, setMessage] = useState({ type: '', text: '' })
   const [showCadastroModal, setShowCadastroModal] = useState(false)
   const [eventoSelecionado, setEventoSelecionado] = useState(null)
+  const [eventoDetalhes, setEventoDetalhes] = useState(null)
   const [abaAtiva, setAbaAtiva] = useState('inscricoes') // 'inscricoes' ou 'eventos'
   const navigate = useNavigate()
 
@@ -583,7 +584,13 @@ function Admin({ setIsAuthenticated }) {
                         )}
                       </div>
 
-                      <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                        <button
+                          onClick={() => setEventoDetalhes(evento)}
+                          className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm"
+                        >
+                          Detalhes
+                        </button>
                         <button
                           onClick={() => handleInscreverEvento(evento)}
                           disabled={evento.cancelado === 1}
@@ -610,6 +617,191 @@ function Admin({ setIsAuthenticated }) {
             }}
             onSuccess={handleCadastroCompleto}
           />
+        )}
+
+        {/* Modal de Detalhes do Evento */}
+        {eventoDetalhes && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Detalhes do Evento</h2>
+                    <p className="text-sm text-gray-600 mt-1">ID: {eventoDetalhes.id}</p>
+                  </div>
+                  <button
+                    onClick={() => setEventoDetalhes(null)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Conteúdo */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Descrição
+                    </label>
+                    <p className="text-gray-900 text-lg font-semibold">
+                      {eventoDetalhes.descricao || 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Data de Início
+                      </label>
+                      <div className="flex items-center text-gray-900">
+                        <svg
+                          className="w-4 h-4 mr-2 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        {formatarData(eventoDetalhes.data_inicio)}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Data Final
+                      </label>
+                      <div className="flex items-center text-gray-900">
+                        <svg
+                          className="w-4 h-4 mr-2 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        {formatarData(eventoDetalhes.data_final)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Local
+                      </label>
+                      <div className="flex items-center text-gray-900">
+                        <svg
+                          className="w-4 h-4 mr-2 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        {eventoDetalhes.local || 'N/A'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vagas
+                      </label>
+                      <div className="flex items-center text-gray-900">
+                        <svg
+                          className="w-4 h-4 mr-2 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                          />
+                        </svg>
+                        {eventoDetalhes.vagas !== null && eventoDetalhes.vagas !== undefined
+                          ? eventoDetalhes.vagas
+                          : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Status
+                      </label>
+                      <div>
+                        {eventoDetalhes.cancelado === 1 || eventoDetalhes.cancelado === true ? (
+                          <span className="px-3 py-1 text-sm font-semibold text-red-600 bg-red-100 rounded">
+                            Cancelado
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 text-sm font-semibold text-green-600 bg-green-100 rounded">
+                            Ativo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Criado em
+                      </label>
+                      <p className="text-gray-900 text-sm">
+                        {formatarData(eventoDetalhes.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botão Fechar */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setEventoDetalhes(null)}
+                    className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
