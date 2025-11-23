@@ -17,7 +17,17 @@ export const isOnline = () => {
 export const getOfflineQueue = () => {
   try {
     const queue = localStorage.getItem(STORAGE_KEY)
-    return queue ? JSON.parse(queue) : {
+    if (queue) {
+      const parsedQueue = JSON.parse(queue)
+      // Garantir que todos os campos existam (para compatibilidade com versões antigas)
+      return {
+        usuarios: parsedQueue.usuarios || [],
+        inscricoes: parsedQueue.inscricoes || [],
+        presencas: parsedQueue.presencas || [],
+        emails: parsedQueue.emails || [],
+      }
+    }
+    return {
       usuarios: [],
       inscricoes: [],
       presencas: [],
@@ -137,7 +147,10 @@ const updateSyncStatus = (status) => {
 // Contar itens pendentes
 export const getPendingCount = () => {
   const queue = getOfflineQueue()
-  return queue.usuarios.length + queue.inscricoes.length + queue.presencas.length + queue.emails.length
+  return (queue.usuarios?.length || 0) + 
+         (queue.inscricoes?.length || 0) + 
+         (queue.presencas?.length || 0) + 
+         (queue.emails?.length || 0)
 }
 
 // Obter inscrições offline do usuário atual
@@ -186,7 +199,7 @@ export const syncOfflineData = async (apis) => {
     let erros = []
 
     // 1. Sincronizar usuários primeiro
-    for (const usuario of queue.usuarios) {
+    for (const usuario of queue.usuarios || []) {
       if (usuario.status === 'pendente') {
         try {
           const response = await apis.usuariosAPI.criar(usuario.dados)
@@ -215,7 +228,7 @@ export const syncOfflineData = async (apis) => {
       }
     })
 
-    for (const inscricao of queue.inscricoes) {
+    for (const inscricao of queue.inscricoes || []) {
       if (inscricao.status === 'pendente') {
         try {
           // Se o usuario_id é um ID local, tentar mapear para ID do servidor
@@ -268,7 +281,7 @@ export const syncOfflineData = async (apis) => {
       }
     })
 
-    for (const presenca of queue.presencas) {
+    for (const presenca of queue.presencas || []) {
       if (presenca.status === 'pendente') {
         try {
           // Se o inscricao_id é um ID local, tentar mapear para ID do servidor
@@ -312,11 +325,18 @@ export const syncOfflineData = async (apis) => {
     saveOfflineQueue(queue)
     
     // Atualizar mapa com IDs de presenças (se necessário)
-    queue.presencas.forEach(p => {
-      if (p.id_servidor) {
-        idMap[p.id_local] = p.id_servidor
-      }
-    })
+    if (queue.presencas) {
+      queue.presencas.forEach(p => {
+        if (p.id_servidor) {
+          idMap[p.id_local] = p.id_servidor
+        }
+      })
+    }
+
+    // Garantir que emails existe
+    if (!queue.emails) {
+      queue.emails = []
+    }
 
     for (const email of queue.emails) {
       if (email.status === 'pendente') {
@@ -357,10 +377,10 @@ export const syncOfflineData = async (apis) => {
     }
 
     // Remover itens sincronizados da fila
-    queue.usuarios = queue.usuarios.filter(u => u.status !== 'sincronizado')
-    queue.inscricoes = queue.inscricoes.filter(i => i.status !== 'sincronizado')
-    queue.presencas = queue.presencas.filter(p => p.status !== 'sincronizado')
-    queue.emails = queue.emails.filter(e => e.status !== 'sincronizado')
+    queue.usuarios = (queue.usuarios || []).filter(u => u.status !== 'sincronizado')
+    queue.inscricoes = (queue.inscricoes || []).filter(i => i.status !== 'sincronizado')
+    queue.presencas = (queue.presencas || []).filter(p => p.status !== 'sincronizado')
+    queue.emails = (queue.emails || []).filter(e => e.status !== 'sincronizado')
     saveOfflineQueue(queue)
 
     updateSyncStatus({
