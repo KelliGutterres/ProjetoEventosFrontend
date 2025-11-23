@@ -21,6 +21,7 @@ export const getOfflineQueue = () => {
       usuarios: [],
       inscricoes: [],
       presencas: [],
+      emails: [],
     }
   } catch (error) {
     console.error('Erro ao ler fila offline:', error)
@@ -28,6 +29,7 @@ export const getOfflineQueue = () => {
       usuarios: [],
       inscricoes: [],
       presencas: [],
+      emails: [],
     }
   }
 }
@@ -83,6 +85,21 @@ export const addPresencaToQueue = (dados) => {
   return presenca
 }
 
+// Adicionar email à fila
+export const addEmailToQueue = (tipo, dados) => {
+  const queue = getOfflineQueue()
+  const email = {
+    id_local: generateLocalId(),
+    tipo: tipo, // 'presenca', 'inscricao', 'cancelamento'
+    dados: dados,
+    status: 'pendente',
+    timestamp: new Date().toISOString(),
+  }
+  queue.emails.push(email)
+  saveOfflineQueue(queue)
+  return email
+}
+
 // Remover item da fila após sincronização
 const removeFromQueue = (tipo, idLocal) => {
   const queue = getOfflineQueue()
@@ -120,7 +137,7 @@ const updateSyncStatus = (status) => {
 // Contar itens pendentes
 export const getPendingCount = () => {
   const queue = getOfflineQueue()
-  return queue.usuarios.length + queue.inscricoes.length + queue.presencas.length
+  return queue.usuarios.length + queue.inscricoes.length + queue.presencas.length + queue.emails.length
 }
 
 // Obter inscrições offline do usuário atual
@@ -165,6 +182,7 @@ export const syncOfflineData = async (apis) => {
     let usuariosSincronizados = 0
     let inscricoesSincronizadas = 0
     let presencasSincronizadas = 0
+    let emailsEnviados = 0
     let erros = []
 
     // 1. Sincronizar usuários primeiro
@@ -289,10 +307,60 @@ export const syncOfflineData = async (apis) => {
       }
     }
 
+    // 4. Enviar emails pendentes (após sincronizar tudo)
+    // Atualizar fila após sincronizar presenças
+    saveOfflineQueue(queue)
+    
+    // Atualizar mapa com IDs de presenças (se necessário)
+    queue.presencas.forEach(p => {
+      if (p.id_servidor) {
+        idMap[p.id_local] = p.id_servidor
+      }
+    })
+
+    for (const email of queue.emails) {
+      if (email.status === 'pendente') {
+        try {
+          let userId = email.dados.id_usuario
+          let eventoId = email.dados.id_evento
+          
+          // Se o userId é um ID local, tentar mapear para ID do servidor
+          if (userId && userId.toString().startsWith('local_')) {
+            if (idMap[userId]) {
+              userId = idMap[userId]
+            } else {
+              // Usuário ainda não sincronizado, pular este email por enquanto
+              console.warn(`Usuário ${userId} ainda não sincronizado, pulando email`)
+              continue
+            }
+          }
+
+          // Enviar email baseado no tipo
+          let response
+          if (email.tipo === 'presenca') {
+            response = await apis.emailAPI.enviarPresenca(userId, eventoId)
+          } else if (email.tipo === 'inscricao') {
+            response = await apis.emailAPI.enviarInscricao(userId, eventoId)
+          } else if (email.tipo === 'cancelamento') {
+            response = await apis.emailAPI.enviarCancelamento(userId, eventoId)
+          }
+
+          if (response && response.success) {
+            email.status = 'sincronizado'
+            emailsEnviados++
+          }
+        } catch (error) {
+          console.error('Erro ao enviar email:', error)
+          erros.push({ tipo: 'email', id: email.id_local, erro: error.message })
+        }
+      }
+    }
+
     // Remover itens sincronizados da fila
     queue.usuarios = queue.usuarios.filter(u => u.status !== 'sincronizado')
     queue.inscricoes = queue.inscricoes.filter(i => i.status !== 'sincronizado')
     queue.presencas = queue.presencas.filter(p => p.status !== 'sincronizado')
+    queue.emails = queue.emails.filter(e => e.status !== 'sincronizado')
     saveOfflineQueue(queue)
 
     updateSyncStatus({
@@ -306,6 +374,7 @@ export const syncOfflineData = async (apis) => {
       usuarios: usuariosSincronizados,
       inscricoes: inscricoesSincronizadas,
       presencas: presencasSincronizadas,
+      emails: emailsEnviados,
       erros: erros.length > 0 ? erros : null,
     }
   } catch (error) {

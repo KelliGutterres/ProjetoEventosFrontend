@@ -3,7 +3,8 @@ import {
   isOnline, 
   addUsuarioToQueue, 
   addInscricaoToQueue, 
-  addPresencaToQueue 
+  addPresencaToQueue,
+  addEmailToQueue
 } from './offlineService'
 import auditLogger from './auditLogger'
 
@@ -312,12 +313,17 @@ export const presencasAPI = {
 
 export const emailAPI = {
   enviarPresenca: async (idUsuario, idEvento) => {
-    // Não enviar email se estiver offline
+    // Se estiver offline, salvar na fila
     if (!isOnline()) {
-      console.log('Modo offline: email de presença não será enviado')
+      console.log('Modo offline: salvando email de presença na fila')
+      const emailOffline = addEmailToQueue('presenca', {
+        id_usuario: idUsuario,
+        id_evento: idEvento,
+      })
       return {
-        success: false,
-        message: 'Email não enviado: modo offline',
+        success: true,
+        message: 'Email de presença será enviado quando voltar online.',
+        data: { id: emailOffline.id_local },
         offline: true,
       }
     }
@@ -330,6 +336,20 @@ export const emailAPI = {
       })
       return response.data
     } catch (error) {
+      // Se a requisição falhar e for erro de rede, tentar salvar offline
+      if (!error.response && !isOnline()) {
+        console.log('Erro de rede: salvando email de presença na fila')
+        const emailOffline = addEmailToQueue('presenca', {
+          id_usuario: idUsuario,
+          id_evento: idEvento,
+        })
+        return {
+          success: true,
+          message: 'Email de presença será enviado quando voltar online.',
+          data: { id: emailOffline.id_local },
+          offline: true,
+        }
+      }
       console.error('Erro ao enviar email de presença:', error)
       // Não lançar erro, apenas retornar falha silenciosa
       return {
@@ -340,12 +360,17 @@ export const emailAPI = {
     }
   },
   enviarInscricao: async (idUsuario, idEvento) => {
-    // Não enviar email se estiver offline
+    // Se estiver offline, salvar na fila
     if (!isOnline()) {
-      console.log('Modo offline: email de inscrição não será enviado')
+      console.log('Modo offline: salvando email de inscrição na fila')
+      const emailOffline = addEmailToQueue('inscricao', {
+        id_usuario: idUsuario,
+        id_evento: idEvento,
+      })
       return {
-        success: false,
-        message: 'Email não enviado: modo offline',
+        success: true,
+        message: 'Email de inscrição será enviado quando voltar online.',
+        data: { id: emailOffline.id_local },
         offline: true,
       }
     }
@@ -358,6 +383,20 @@ export const emailAPI = {
       })
       return response.data
     } catch (error) {
+      // Se a requisição falhar e for erro de rede, tentar salvar offline
+      if (!error.response && !isOnline()) {
+        console.log('Erro de rede: salvando email de inscrição na fila')
+        const emailOffline = addEmailToQueue('inscricao', {
+          id_usuario: idUsuario,
+          id_evento: idEvento,
+        })
+        return {
+          success: true,
+          message: 'Email de inscrição será enviado quando voltar online.',
+          data: { id: emailOffline.id_local },
+          offline: true,
+        }
+      }
       console.error('Erro ao enviar email de inscrição:', error)
       // Não lançar erro, apenas retornar falha silenciosa
       return {
@@ -368,12 +407,17 @@ export const emailAPI = {
     }
   },
   enviarCancelamento: async (idUsuario, idEvento) => {
-    // Não enviar email se estiver offline
+    // Se estiver offline, salvar na fila
     if (!isOnline()) {
-      console.log('Modo offline: email de cancelamento não será enviado')
+      console.log('Modo offline: salvando email de cancelamento na fila')
+      const emailOffline = addEmailToQueue('cancelamento', {
+        id_usuario: idUsuario,
+        id_evento: idEvento,
+      })
       return {
-        success: false,
-        message: 'Email não enviado: modo offline',
+        success: true,
+        message: 'Email de cancelamento será enviado quando voltar online.',
+        data: { id: emailOffline.id_local },
         offline: true,
       }
     }
@@ -386,6 +430,20 @@ export const emailAPI = {
       })
       return response.data
     } catch (error) {
+      // Se a requisição falhar e for erro de rede, tentar salvar offline
+      if (!error.response && !isOnline()) {
+        console.log('Erro de rede: salvando email de cancelamento na fila')
+        const emailOffline = addEmailToQueue('cancelamento', {
+          id_usuario: idUsuario,
+          id_evento: idEvento,
+        })
+        return {
+          success: true,
+          message: 'Email de cancelamento será enviado quando voltar online.',
+          data: { id: emailOffline.id_local },
+          offline: true,
+        }
+      }
       console.error('Erro ao enviar email de cancelamento:', error)
       // Não lançar erro, apenas retornar falha silenciosa
       return {

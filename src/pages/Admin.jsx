@@ -148,13 +148,14 @@ function Admin({ setIsAuthenticated }) {
         return
       }
       
-      // Enviar email de inscrição (apenas se estiver online e não for offline)
-      if (!isInscricaoOffline && !isUsuarioOffline) {
+      // Enviar email de inscrição (será salvo na fila se estiver offline)
+      if (userId && eventoSelecionado.id) {
         try {
-          // Usar o ID do servidor para o email (userId já é do servidor se não estiver offline)
-          const userIdServidor = isUsuarioOffline ? null : userId
-          if (userIdServidor) {
-            await emailAPI.enviarInscricao(userIdServidor, eventoSelecionado.id)
+          // Usar o ID do usuário (pode ser local se offline, será mapeado na sincronização)
+          const emailResponse = await emailAPI.enviarInscricao(userId, eventoSelecionado.id)
+          if (emailResponse.offline) {
+            console.log('Email de inscrição salvo na fila offline')
+          } else {
             console.log('Email de inscrição enviado com sucesso')
           }
         } catch (emailError) {
@@ -183,13 +184,14 @@ function Admin({ setIsAuthenticated }) {
 
       const isPresencaOffline = responsePresenca.offline || false
 
-      // Enviar email de presença (apenas se estiver online e não for offline)
-      if (!isPresencaOffline && !isUsuarioOffline && !isInscricaoOffline) {
+      // Enviar email de presença (será salvo na fila se estiver offline)
+      if (userId && eventoSelecionado.id) {
         try {
-          // Usar o ID do servidor para o email (userId já é do servidor se não estiver offline)
-          const userIdServidor = isUsuarioOffline ? null : userId
-          if (userIdServidor) {
-            await emailAPI.enviarPresenca(userIdServidor, eventoSelecionado.id)
+          // Usar o ID do usuário (pode ser local se offline, será mapeado na sincronização)
+          const emailResponse = await emailAPI.enviarPresenca(userId, eventoSelecionado.id)
+          if (emailResponse.offline) {
+            console.log('Email de presença salvo na fila offline')
+          } else {
             console.log('Email de presença enviado com sucesso')
           }
         } catch (emailError) {
@@ -265,12 +267,16 @@ function Admin({ setIsAuthenticated }) {
 
       const response = await presencasAPI.registrar(inscricaoId)
       if (response.success) {
-        // Enviar email de presença (apenas se estiver online e não for offline)
+        // Enviar email de presença (será salvo na fila se estiver offline)
         const isPresencaOffline = response.offline || false
-        if (!isPresencaOffline && userId && eventoId) {
+        if (userId && eventoId) {
           try {
-            await emailAPI.enviarPresenca(userId, eventoId)
-            console.log('Email de presença enviado com sucesso')
+            const emailResponse = await emailAPI.enviarPresenca(userId, eventoId)
+            if (emailResponse.offline) {
+              console.log('Email de presença salvo na fila offline')
+            } else {
+              console.log('Email de presença enviado com sucesso')
+            }
           } catch (emailError) {
             // Não bloquear o fluxo se o email falhar, apenas logar o erro
             console.error('Erro ao enviar email de presença:', emailError)
